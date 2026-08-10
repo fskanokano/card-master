@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WiX 3.x installer for CardMaster (Windows Desktop export).
+  Built by build-all.bat using candle + light.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="CardMaster" Language="1033" Version="1.0.0"
+           Manufacturer="CardMaster" UpgradeCode="{A1B2C3D4-E5F6-47A8-9B0C-D1E2F3A4B5C6}">
+    <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine"
+             Description="CardMaster - Board Game Collection" Comments="Game Lobby + Chinese Chess" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <Media Id="1" Cabinet="CardMaster.cab" EmbedCab="yes" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="CardMaster">
+          <Component Id="MainExecutable" Guid="{F5AB7F5A-7FC2-4333-9F4B-1BB101847AE5}">
+            <File Id="CardMasterExe" Source="$(var.SourceDir)\CardMaster.exe" KeyPath="yes" />
+            <File Id="CardMasterPck" Source="$(var.SourceDir)\CardMaster.pck" Vital="no" />
+          </Component>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="CardMaster"/>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <Feature Id="ProductFeature" Title="CardMaster" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="ApplicationShortcutDesktop" />
+    </Feature>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="{DB69E305-BB5F-4A8B-99BE-E192835E5C83}">
+        <Shortcut Id="ApplicationStartMenuShortcut" Name="CardMaster"
+                  Description="CardMaster - Board Game Collection"
+                  Target="[INSTALLFOLDER]CardMaster.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\CardMaster" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="ApplicationShortcutDesktop" Guid="{1971807E-7A94-428A-9DFA-B15321B90426}">
+        <Shortcut Id="ApplicationDesktopShortcut" Name="CardMaster"
+                  Description="CardMaster - Board Game Collection"
+                  Target="[INSTALLFOLDER]CardMaster.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\CardMaster" Name="desktop_shortcut" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.ProjectDir)\build\wix\License.rtf" />
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+  </Product>
+</Wix>

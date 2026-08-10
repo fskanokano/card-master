@@ -1,0 +1,22 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+
+# Local agent/workflow metadata
+.claude/
+
+# Build outputs (keep dir, ignore contents except WiX source)
+artifact/*
+!artifact/.gitkeep
+build/wix/obj/
+build/keystore/debug.keystore
+build/keystore/debug.keystore.properties
+
+# OS
+Thumbs.db
+.DS_Store
+
+# apksigner v4 idsig
+*.idsig
+

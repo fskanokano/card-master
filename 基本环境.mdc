@@ -6,4 +6,9 @@ updatedAt: 2026-07-23T12:01:44.558Z
 provider: 
 ---
 
-Android SDK：D:\software\AndroidSDK，ndk：D:\software\AndroidSDK\ndk，cmake：D:\software\AndroidSDK\cmake，jdk：D:\software\jdk-21
+Android SDK:D:\software\AndroidSDK
+ndk:D:\software\AndroidSDK\ndk
+cmake:D:\software\AndroidSDK\cmake
+jdk:D:\software\jdk-17
+godot:D:\software\Godot
+wix:D:\software\wix
