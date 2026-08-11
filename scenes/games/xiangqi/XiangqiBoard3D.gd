@@ -40,6 +40,8 @@ var _piece_nodes: Array[XiangqiPiece3D] = []
 
 # -- 动画状态 --
 var _anim_tween: Tween = null
+var _anim_y_tween: Tween = null
+var _anim_scale_tween: Tween = null
 var _is_anim: bool = false
 var _anim_from: Vector2i = Vector2i(-1, -1)
 var _anim_to: Vector2i = Vector2i(-1, -1)
@@ -432,11 +434,22 @@ func cancel_animation() -> void:
 	if _anim_tween != null and _anim_tween.is_valid():
 		_anim_tween.kill()
 	_anim_tween = null
+	if _anim_y_tween != null and _anim_y_tween.is_valid():
+		_anim_y_tween.kill()
+	_anim_y_tween = null
+	if _anim_scale_tween != null and _anim_scale_tween.is_valid():
+		_anim_scale_tween.kill()
+	_anim_scale_tween = null
 	_is_anim = false
 	_anim_from = Vector2i(-1, -1)
 	_anim_to = Vector2i(-1, -1)
 
 func cancel_gesture() -> void:
+	# Clear highlight of dragged piece if any (valid-drop paths previously left it on)
+	if _drag_from.x != -1:
+		var dp: XiangqiPiece3D = _pieces.get(_drag_from, null)
+		if dp != null and is_instance_valid(dp):
+			dp.set_highlight(false)
 	_is_dragging = false
 	_pending_drag = false
 	_drag_from = Vector2i(-1, -1)
@@ -571,7 +584,13 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 		return
 	if _anim_tween != null and _anim_tween.is_valid():
 		_anim_tween.kill()
-		_anim_tween = null
+	_anim_tween = null
+	if _anim_y_tween != null and _anim_y_tween.is_valid():
+		_anim_y_tween.kill()
+	_anim_y_tween = null
+	if _anim_scale_tween != null and _anim_scale_tween.is_valid():
+		_anim_scale_tween.kill()
+	_anim_scale_tween = null
 	var p: int = piece
 	if p == 0 and from.y >= 0 and from.y < 10 and from.x >= 0 and from.x < 9 and not board.is_empty():
 		p = board[from.y][from.x]
@@ -585,7 +604,6 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 
 	var mover: XiangqiPiece3D = _pieces.get(from, null)
 	if mover == null or not is_instance_valid(mover):
-		# Fallback: mover not found, sync directly
 		_is_anim = false
 		_refresh_markers()
 		return
@@ -598,16 +616,18 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 		dur += 0.04
 	var is_capture: bool = captured != 0
 
-	# Victim at dest (if capture), mover takes over during anim
 	var victim: XiangqiPiece3D = _pieces.get(to, null) if is_capture else null
 
-	# Victim death in parallel.
 	if victim != null and is_instance_valid(victim):
 		victim.play_death(dur * 0.72)
 
-	# Parabola: xz linear + y two-phase. Board owns position (single authority).
-	# On capture, add a mid-flight impact flash instead of a competing lunge tween.
-	var lift_h: float = clamp(world_from.distance_to(world_to) * 0.18, 0.55, 1.6)
+	# Capture flash near impact.
+	var lift_h: float
+	if p != 0 and mover != null and mover.has_method("_move_jump_height"):
+		var base_h: float = mover.call("_move_jump_height")
+		lift_h = clamp(base_h + dist * 0.08, 0.35, 1.6)
+	else:
+		lift_h = clamp(world_from.distance_to(world_to) * 0.18, 0.55, 1.6)
 	var to_v: Vector3 = Vector3(world_to.x, PIECE_Y, world_to.z)
 	var mid_y: float = PIECE_Y + lift_h
 	if is_capture and mover.has_method("_do_impact_flash"):
@@ -616,21 +636,25 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 			if is_instance_valid(_flash_mover):
 				_flash_mover._do_impact_flash(0.12)
 		, CONNECT_ONE_SHOT)
+	# XZ linear over full dur.
 	_anim_tween = create_tween()
-	_anim_tween.set_parallel(true)
 	_anim_tween.tween_property(mover, "position:x", to_v.x, dur).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_anim_tween.tween_property(mover, "position:z", to_v.z, dur).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_anim_tween.tween_property(mover, "position:y", mid_y, dur * 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_anim_tween.chain().tween_property(mover, "position:y", PIECE_Y, dur * 0.5).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
-	_anim_tween.tween_property(mover, "scale", Vector3(1.06, 1.06, 1.06), dur * 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	_anim_tween.chain().tween_property(mover, "scale", Vector3.ONE, dur * 0.35).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	_anim_tween.parallel().tween_property(mover, "position:z", to_v.z, dur).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	# Y two-phase on its own tween so chain does not push past dur.
+	_anim_y_tween = create_tween()
+	_anim_y_tween.tween_property(mover, "position:y", mid_y, dur * 0.5).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_anim_y_tween.tween_property(mover, "position:y", PIECE_Y, dur * 0.5).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	# Pulse scale chained within dur as well.
+	_anim_scale_tween = create_tween()
+	_anim_scale_tween.tween_property(mover, "scale", Vector3(1.06, 1.06, 1.06), dur * 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_anim_scale_tween.tween_property(mover, "scale", Vector3.ONE, dur * 0.35).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
 
 	if is_capture:
 		_shake_camera(0.09, 0.06)
 
 	var fin_dur: float = dur
 	await get_tree().create_timer(fin_dur).timeout
-	if not is_inside_tree():
+	if not is_inside_tree() or not _is_anim:
 		return
 	if victim != null and is_instance_valid(victim):
 		victim.queue_free()
@@ -645,6 +669,8 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 	_anim_from = Vector2i(-1, -1)
 	_anim_to = Vector2i(-1, -1)
 	_anim_tween = null
+	_anim_y_tween = null
+	_anim_scale_tween = null
 	_refresh_markers()
 	_try_haptic(16)
 
@@ -670,6 +696,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drag_start_screen = st.position
 			var sq: Vector2i = _screen_to_board(st.position)
 			if sq.x == -1:
+				_pending_drag = false
+				_drag_from = Vector2i(-1, -1)
+				_long_press_time = 0.0
 				return
 			var pv: int = 0
 			if not board.is_empty() and sq.y >= 0 and sq.y < 10 and sq.x >= 0 and sq.x < 9:
@@ -707,6 +736,9 @@ func _unhandled_input(event: InputEvent) -> void:
 							break
 				if valid:
 					var fc: Vector2i = _drag_from
+					var dp2: XiangqiPiece3D = _pieces.get(_drag_from, null)
+					if dp2 != null and is_instance_valid(dp2):
+						dp2.set_highlight(false)
 					_is_dragging = false
 					_pending_drag = false
 					_drag_from = Vector2i(-1, -1)
@@ -739,6 +771,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		_drag_start_screen = event.position
 		var sq2: Vector2i = _screen_to_board(event.position)
 		if sq2.x == -1:
+			_pending_drag = false
+			_drag_from = Vector2i(-1, -1)
+			_long_press_time = 0.0
 			return
 		if selected.x != -1:
 			for t in legal_targets:
@@ -771,6 +806,9 @@ func _unhandled_input(event: InputEvent) -> void:
 						break
 			if ok:
 				var fc2: Vector2i = _drag_from
+				var dp3: XiangqiPiece3D = _pieces.get(_drag_from, null)
+				if dp3 != null and is_instance_valid(dp3):
+					dp3.set_highlight(false)
 				_is_dragging = false
 				_pending_drag = false
 				_drag_from = Vector2i(-1, -1)

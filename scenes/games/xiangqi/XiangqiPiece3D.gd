@@ -83,6 +83,7 @@ var _pose_tween: Tween = null
 var _select_tween: Tween = null
 var _select_pulse_tween: Tween = null
 var _highlight_tween: Tween = null
+var _death_tweens: Array[Tween] = []
 
 var _is_selected: bool = false
 var _is_highlighted: bool = false
@@ -238,6 +239,7 @@ func _clear_piece() -> void:
 	if _highlight_tween != null and _highlight_tween.is_valid():
 		_highlight_tween.kill()
 	_highlight_tween = null
+	_kill_death_tweens()
 
 	# 清理三层下的 Mesh
 	if _root_visual != null and is_instance_valid(_root_visual):
@@ -384,6 +386,17 @@ func _kill_move_tween() -> void:
 	if _pose_tween != null and _pose_tween.is_valid():
 		_pose_tween.kill()
 	_pose_tween = null
+
+func _kill_death_tweens() -> void:
+	for tw in _death_tweens:
+		if tw != null and tw.is_valid():
+			tw.kill()
+	_death_tweens.clear()
+
+func _track_death_tween(tw: Tween) -> Tween:
+	if tw != null:
+		_death_tweens.append(tw)
+	return tw
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1479,6 +1492,7 @@ func _spawn_muzzle_flash(_at_pos: Vector3) -> void:
 func play_death(duration: float = 0.62) -> Tween:
 	_stop_idle()
 	_kill_move_tween()
+	_kill_death_tweens()
 	var dur: float = maxf(duration, 0.28)
 	_prepare_fade()
 
@@ -1494,7 +1508,7 @@ func play_death(duration: float = 0.62) -> Tween:
 			# 皇冠珠额外抛起再坠
 			var jewel3 := _top_node.get_node_or_null("CrownJewel") as MeshInstance3D
 			if jewel3 != null:
-				var jtw := create_tween()
+				var jtw := _track_death_tween(create_tween())
 				jtw.set_trans(Tween.TRANS_QUAD)
 				jtw.tween_property(jewel3, "position:y", 0.55, dur * 0.28).set_ease(Tween.EASE_OUT)
 				jtw.tween_property(jewel3, "position:y", -0.85, dur * 0.58).set_ease(Tween.EASE_IN)
@@ -1506,7 +1520,7 @@ func play_death(duration: float = 0.62) -> Tween:
 			tw.parallel().tween_property(_root_visual, "scale", Vector3(0.78, 0.78, 0.78), dur)
 			var tablet4 := _body_node.get_node_or_null("Tablet") as MeshInstance3D
 			if tablet4 != null:
-				var ttw := create_tween()
+				var ttw := _track_death_tween(create_tween())
 				ttw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 				ttw.tween_property(tablet4, "position:z", 0.42, dur * 0.32)
 				ttw.parallel().tween_property(tablet4, "rotation:x", deg_to_rad(70), dur * 0.42)
@@ -1520,7 +1534,7 @@ func play_death(duration: float = 0.62) -> Tween:
 			# 象鼻无力垂落
 			var trunk4 := _top_node.get_node_or_null("Trunk") as MeshInstance3D
 			if trunk4 != null:
-				var etw := create_tween()
+				var etw := _track_death_tween(create_tween())
 				etw.tween_property(trunk4, "rotation:x", deg_to_rad(42), dur * 0.6)
 		HORSE:
 			# 烈马悲鸣：前蹄扬起后翻倒
@@ -1531,14 +1545,14 @@ func play_death(duration: float = 0.62) -> Tween:
 			tw.parallel().tween_property(_root_visual, "scale", Vector3(0.74, 0.74, 0.74), dur)
 			var hhead4 := _top_node.get_node_or_null("HorseHead") as MeshInstance3D
 			if hhead4 != null:
-				var htw := create_tween()
+				var htw := _track_death_tween(create_tween())
 				htw.tween_property(hhead4, "rotation:x", deg_to_rad(-18), dur * 0.30)
 		CHARIOT:
 			# 战车解体：底盘、车厢、战旗三层分离飞散
 			tw.tween_property(_root_visual, "rotation:z", deg_to_rad(14), dur * 0.32)
 			tw.parallel().tween_property(_root_visual, "position:y", -0.18, dur * 0.32)
 			# 解体分散在并行 Tween 中
-			var dtw := create_tween()
+			var dtw := _track_death_tween(create_tween())
 			dtw.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 			dtw.tween_property(_body_node, "position:x", 0.42, dur * 0.48)
 			dtw.parallel().tween_property(_body_node, "rotation:z", deg_to_rad(38), dur * 0.48)
@@ -1564,7 +1578,7 @@ func play_death(duration: float = 0.62) -> Tween:
 			tw.parallel().tween_property(_root_visual, "rotation:z", deg_to_rad(18), dur * 0.55)
 			var barrel4 := _body_node.get_node_or_null("Barrel") as MeshInstance3D
 			if barrel4 != null:
-				var btw := create_tween()
+				var btw := _track_death_tween(create_tween())
 				btw.set_trans(Tween.TRANS_QUAD)
 				btw.tween_property(barrel4, "position:y", 0.62, dur * 0.24).set_ease(Tween.EASE_OUT)
 				btw.parallel().tween_property(barrel4, "rotation:x", deg_to_rad(62), dur * 0.34)
@@ -1576,7 +1590,7 @@ func play_death(duration: float = 0.62) -> Tween:
 				var w4 := _base_node.get_node_or_null(wn2) as MeshInstance3D
 				if w4 != null:
 					var dir3: float = 1.0 if wn2 == "WheelR" else -1.0
-					var wtw := create_tween()
+					var wtw := _track_death_tween(create_tween())
 					wtw.tween_property(w4, "position:x", dir3 * 0.48, dur * 0.45)
 					wtw.parallel().tween_property(w4, "rotation:y", deg_to_rad(540 * dir3), dur * 0.55)
 		PAWN:
@@ -1587,17 +1601,17 @@ func play_death(duration: float = 0.62) -> Tween:
 			var spear4 := _top_node.get_node_or_null("Spear") as MeshInstance3D
 			var spear_head4 := _top_node.get_node_or_null("SpearHead") as MeshInstance3D
 			if spear4 != null:
-				var stw := create_tween()
+				var stw := _track_death_tween(create_tween())
 				stw.tween_property(spear4, "position:y", 0.42, dur * 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 				stw.tween_property(spear4, "position:y", -0.52, dur * 0.48).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 				stw.parallel().tween_property(spear4, "rotation:z", deg_to_rad(68), dur * 0.62)
 			if spear_head4 != null:
-				var shtw := create_tween()
+				var shtw := _track_death_tween(create_tween())
 				shtw.tween_property(spear_head4, "position:y", 0.42, dur * 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 				shtw.tween_property(spear_head4, "position:y", -0.52, dur * 0.48).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 			var sh5 := _body_node.get_node_or_null("Shield") as MeshInstance3D
 			if sh5 != null:
-				var shield_tw := create_tween()
+				var shield_tw := _track_death_tween(create_tween())
 				shield_tw.tween_property(sh5, "rotation:y", deg_to_rad(42), dur * 0.38)
 				shield_tw.parallel().tween_property(sh5, "position:x", -0.22, dur * 0.38)
 
