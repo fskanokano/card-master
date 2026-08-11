@@ -40,6 +40,10 @@ var _anim_capture_scale: float = 1.0:
 	set(v):
 		_anim_capture_scale = v
 		queue_redraw()
+var _anim_capture_fx: float = 0.0:
+	set(v):
+		_anim_capture_fx = v
+		queue_redraw()
 
 # ── Touch / drag — 长按拖拽 + 回弹 ───────────────────────
 var _drag_from: Vector2i = Vector2i(-1, -1)
@@ -157,6 +161,7 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 	_anim_progress = 0.0
 	_anim_capture_alpha = 1.0
 	_anim_capture_scale = 1.0
+	_anim_capture_fx = 0.0
 	# 取消拖拽
 	_cancel_drag_silent()
 	var dist: float = Vector2(from).distance_to(Vector2(to))
@@ -171,6 +176,10 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 		cap_tween.tween_property(self, "_anim_capture_alpha", 1.0, dur * 0.52)
 		cap_tween.tween_property(self, "_anim_capture_alpha", 0.0, dur * 0.40).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
 		cap_tween.parallel().tween_property(self, "_anim_capture_scale", 0.68, dur * 0.40).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+		var fx_tween := create_tween()
+		fx_tween.tween_interval(dur * 0.08)
+		fx_tween.tween_property(self, "_anim_capture_fx", 1.0, dur * 0.34).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+		fx_tween.tween_property(self, "_anim_capture_fx", 0.0, dur * 0.28).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
 		_anim_tween.tween_callback(func() -> void:
 			_anim_from = Vector2i(-1, -1)
 			_anim_to = Vector2i(-1, -1)
@@ -180,6 +189,7 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 			_anim_progress = 0.0
 			_anim_capture_alpha = 1.0
 			_anim_capture_scale = 1.0
+			_anim_capture_fx = 0.0
 			queue_redraw()
 		)
 	else:
@@ -554,6 +564,8 @@ func _draw() -> void:
 		var cap_pos: Vector2 = board_to_local(_anim_to.x, _anim_to.y)
 		var lift: float = -8 * ease(_anim_progress, 0.45)
 		_draw_piece(cap_pos + Vector2(0, lift), _anim_captured, font, _anim_capture_alpha, _anim_capture_scale, 0.0)
+		if _anim_capture_fx > 0.0:
+			_draw_capture_effect(cap_pos, _anim_capture_fx)
 
 	# 飞行棋 — 抛物线 + 缩放 + 阴影
 	if _anim_piece != 0 and _anim_from.x != -1 and _anim_to.x != -1 and _anim_progress > 0.0:
@@ -636,6 +648,8 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 	draw_arc(center, r_in, 0, TAU, 32, gold, 1.0 * scale)
 	draw_arc(center, r * 0.78, 0, TAU, 32, Color("#000000", 0.05 * alpha), 1.0 * scale)
 	draw_circle(center + Vector2(-_cell * 0.10, -_cell * 0.12), _cell * 0.10, Color("#FFFFFF", 0.09 * alpha))
+	# 独立兵种徽记：中文棋字保留识别度，徽记提供角色轮廓和侧颜色辨识。
+	_draw_piece_emblem(center, XiangqiLogic.piece_type(p), is_red, alpha, scale)
 	var label: String = _piece_label(p)
 	var fs: int = int(_cell * 0.42 * scale)
 	if fs < 13:
@@ -646,6 +660,109 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 	var base: Vector2 = center - Vector2(ts.x / 2, -ts.y / 3.0)
 	draw_string(font, base + Vector2(0, 1 * scale), label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs, Color("#000000", 0.16 * alpha))
 	draw_string(font, base, label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs, disc)
+
+func _draw_piece_emblem(center: Vector2, typ: int, is_red: bool, alpha: float, sc: float) -> void:
+	var u: float = _cell * sc
+	var side_col: Color = ApplePalette.PIECE_RED if is_red else ApplePalette.PIECE_BLACK
+	var ink := Color(side_col.r, side_col.g, side_col.b, 0.46 * alpha)
+	var soft := Color(side_col.r, side_col.g, side_col.b, 0.18 * alpha)
+	var line_w: float = max(1.2, u * 0.025)
+	match typ:
+		XiangqiLogic.KING:
+			# 将/帅：王冠与护额
+			var crown := PackedVector2Array([
+				center + Vector2(-u * 0.18, -u * 0.18),
+				center + Vector2(-u * 0.11, -u * 0.31),
+				center + Vector2(0, -u * 0.20),
+				center + Vector2(u * 0.11, -u * 0.31),
+				center + Vector2(u * 0.18, -u * 0.18),
+			])
+			draw_colored_polygon(crown, soft)
+			draw_polyline(crown, ink, line_w)
+			draw_line(center + Vector2(-u * 0.22, u * 0.08), center + Vector2(u * 0.22, u * 0.08), ink, line_w)
+			draw_circle(center + Vector2(0, -u * 0.24), u * 0.035, ink)
+		XiangqiLogic.ADVISOR:
+			# 士/仕：宫廷护卫的佩剑与菱形徽章
+			draw_line(center + Vector2(0, -u * 0.29), center + Vector2(0, u * 0.22), ink, line_w)
+			draw_line(center + Vector2(-u * 0.16, -u * 0.03), center + Vector2(u * 0.16, -u * 0.03), ink, line_w)
+			var guard := PackedVector2Array([
+				center + Vector2(0, -u * 0.20),
+				center + Vector2(u * 0.12, -u * 0.05),
+				center + Vector2(0, u * 0.10),
+				center + Vector2(-u * 0.12, -u * 0.05),
+			])
+			draw_colored_polygon(guard, soft)
+			draw_polyline(guard, ink, line_w)
+		XiangqiLogic.ELEPHANT:
+			# 象/相：耳朵、象头和向下的鼻梁
+			draw_circle(center + Vector2(-u * 0.13, -u * 0.07), u * 0.17, soft)
+			draw_circle(center + Vector2(-u * 0.13, -u * 0.07), u * 0.17, ink, false, line_w)
+			draw_circle(center + Vector2(u * 0.08, -u * 0.05), u * 0.15, soft)
+			draw_arc(center + Vector2(0, u * 0.01), u * 0.17, -0.2, 1.35, 16, ink, line_w)
+			draw_line(center + Vector2(u * 0.14, u * 0.02), center + Vector2(u * 0.17, u * 0.22), ink, line_w)
+			draw_line(center + Vector2(u * 0.17, u * 0.22), center + Vector2(u * 0.08, u * 0.27), ink, line_w)
+		XiangqiLogic.HORSE:
+			# 马：独立烈马头部、耳朵和鬃毛
+			var horse := PackedVector2Array([
+				center + Vector2(-u * 0.18, u * 0.24),
+				center + Vector2(-u * 0.16, -u * 0.12),
+				center + Vector2(-u * 0.06, -u * 0.31),
+				center + Vector2(u * 0.01, -u * 0.18),
+				center + Vector2(u * 0.18, -u * 0.27),
+				center + Vector2(u * 0.11, -u * 0.04),
+				center + Vector2(u * 0.22, u * 0.10),
+				center + Vector2(u * 0.11, u * 0.23),
+			])
+			draw_colored_polygon(horse, soft)
+			draw_polyline(horse, ink, line_w)
+			draw_line(center + Vector2(-u * 0.10, -u * 0.20), center + Vector2(-u * 0.28, -u * 0.08), ink, line_w)
+			draw_circle(center + Vector2(u * 0.08, -u * 0.06), u * 0.025, ink)
+		XiangqiLogic.CHARIOT:
+			# 車：战车车厢与双轮
+			var body := Rect2(center + Vector2(-u * 0.23, -u * 0.12), Vector2(u * 0.46, u * 0.24))
+			draw_rect(body, soft)
+			draw_rect(body, ink, false, line_w)
+			draw_circle(center + Vector2(-u * 0.17, u * 0.16), u * 0.10, soft)
+			draw_circle(center + Vector2(-u * 0.17, u * 0.16), u * 0.10, ink, false, line_w)
+			draw_circle(center + Vector2(u * 0.17, u * 0.16), u * 0.10, soft)
+			draw_circle(center + Vector2(u * 0.17, u * 0.16), u * 0.10, ink, false, line_w)
+			draw_line(center + Vector2(-u * 0.18, u * 0.04), center + Vector2(u * 0.18, u * 0.04), ink, line_w)
+		XiangqiLogic.CANNON:
+			# 炮/砲：炮架、炮管与炮口
+			draw_line(center + Vector2(-u * 0.22, u * 0.16), center + Vector2(u * 0.22, u * 0.16), ink, line_w)
+			draw_line(center + Vector2(-u * 0.15, u * 0.11), center + Vector2(-u * 0.15, u * 0.20), ink, line_w)
+			draw_line(center + Vector2(u * 0.15, u * 0.11), center + Vector2(u * 0.15, u * 0.20), ink, line_w)
+			draw_line(center + Vector2(-u * 0.18, 0), center + Vector2(u * 0.17, -u * 0.17), ink, line_w * 2.0)
+			draw_circle(center + Vector2(u * 0.19, -u * 0.18), u * 0.065, soft)
+			draw_arc(center + Vector2(u * 0.19, -u * 0.18), u * 0.065, 0, TAU, 16, ink, line_w)
+		XiangqiLogic.PAWN:
+			# 兵/卒：军帽、长矛与肩甲
+			draw_arc(center + Vector2(0, -u * 0.08), u * 0.20, PI, TAU, 16, ink, line_w)
+			draw_line(center + Vector2(0, -u * 0.30), center + Vector2(0, u * 0.20), ink, line_w)
+			draw_line(center + Vector2(-u * 0.11, u * 0.08), center + Vector2(u * 0.11, u * 0.08), ink, line_w)
+			draw_line(center + Vector2(-u * 0.19, u * 0.20), center + Vector2(u * 0.19, u * 0.20), ink, line_w)
+
+func _draw_capture_effect(center: Vector2, t: float) -> void:
+	# 吃子专属击杀：冲击波 + 交叉斩击 + 八向碎片。
+	var s: float = _cell / 52.0
+	var pulse: float = sin(t * PI)
+	var ring_r: float = (10.0 + 31.0 * pulse) * s
+	var danger := Color(ApplePalette.DANGER.r, ApplePalette.DANGER.g, ApplePalette.DANGER.b, 0.86 * (1.0 - t * 0.55))
+	var gold := Color(ApplePalette.GOLD_BRIGHT.r, ApplePalette.GOLD_BRIGHT.g, ApplePalette.GOLD_BRIGHT.b, 0.9 * (1.0 - t))
+	draw_circle(center, (7.0 + 10.0 * pulse) * s, Color(danger.r, danger.g, danger.b, 0.16))
+	draw_arc(center, ring_r, 0, TAU, 40, danger, 3.0 * s)
+	var slash_angle: float = -0.78 + t * 1.8
+	for i in range(2):
+		var angle: float = slash_angle + (PI * 0.5 if i == 1 else 0.0)
+		var dir := Vector2(cos(angle), sin(angle))
+		draw_line(center - dir * (10.0 * s), center + dir * (29.0 * s * pulse), gold, 3.0 * s)
+	for i in range(8):
+		var a: float = TAU * float(i) / 8.0 + 0.18
+		var dir2 := Vector2(cos(a), sin(a))
+		var start: Vector2 = center + dir2 * (16.0 + 4.0 * pulse) * s
+		var finish: Vector2 = center + dir2 * (24.0 + 16.0 * pulse) * s
+		draw_line(start, finish, Color(gold.r, gold.g, gold.b, 0.78 * (1.0 - t)), max(1.0, 1.8 * s))
+	draw_circle(center, 3.5 * s, gold)
 
 func _highlight_square(pos: Vector2i, col: Color, r: float) -> void:
 	var c: Vector2 = board_to_local(pos.x, pos.y)
