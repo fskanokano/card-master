@@ -35,76 +35,51 @@ jobs:
 
       - name: Install Godot
         run: |
-          echo "=== Installing Godot ${GODOT_VERSION} ==="
-          wget -q "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
-          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
-          echo "Godot version: $(godot --version)"
+          echo '=== Installing Godot ==='
+          wget -q 'https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip'
+          unzip -q 'Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip'
+          chmod +x 'Godot_v${GODOT_VERSION}-stable_linux.x86_64'
+          sudo mv 'Godot_v${GODOT_VERSION}-stable_linux.x86_64' /usr/local/bin/godot
+          echo 'Godot version:' $(godot --version)
 
       - name: Download Export Templates
         run: |
-          echo "=== Downloading export templates ==="
-          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          mkdir -p "$TEMPLATE_DIR"
-          wget -q "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
-          unzip -o "Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -d /tmp/export_templates
-          cp /tmp/export_templates/templates/* "$TEMPLATE_DIR/"
-          echo "Templates installed:"
-          ls "$TEMPLATE_DIR/" | head -10
+          echo '=== Downloading export templates ==='
+          TEMPLATE_DIR=$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p '$TEMPLATE_DIR'
+          wget -q 'https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz'
+          unzip -o 'Godot_v${GODOT_VERSION}-stable_export_templates.tpz' -d /tmp/export_templates
+          cp /tmp/export_templates/templates/* '$TEMPLATE_DIR/'
+          ls '$TEMPLATE_DIR/' | head -5
 
       - name: Generate Keystore
         run: |
-          echo "=== Generating keystore ==="
+          echo '=== Generating keystore ==='
           mkdir -p build/keystore
           keytool -genkeypair \
             -keystore build/keystore/debug.keystore \
             -alias cardmaster \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass cardmaster \
-            -keypass cardmaster \
-            -dname "CN=CardMaster, OU=Dev, O=CardMaster, L=City, S=State, C=US" \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass cardmaster -keypass cardmaster \
+            -dname 'CN=CardMaster, OU=Dev, O=CardMaster, L=City, S=State, C=US' \
             -noprompt
-          echo "Keystore generated at build/keystore/debug.keystore"
 
       - name: Import Godot Project
         run: |
-          echo "=== Importing Godot project ==="
-          godot --headless --path . --import 2>&1 || echo "Import warnings (non-fatal)"
+          echo '=== Importing project ==='
+          godot --headless --path . --import 2>&1 || true
 
       - name: Export Android APK
         run: |
-          echo "=== Exporting Android APK ==="
+          echo '=== Exporting Android APK ==='
           mkdir -p build/android
-          godot --headless --path . --export-release "Android" "build/android/${EXPORT_NAME}.apk"
-          if [ ! -f "build/android/${EXPORT_NAME}.apk" ]; then
-            echo "ERROR: APK not produced"
+          godot --headless --path . --export-release 'Android' 'build/android/${EXPORT_NAME}.apk'
+          if [ ! -f 'build/android/${EXPORT_NAME}.apk' ]; then
+            echo 'ERROR: APK not produced'
             exit 1
           fi
-          echo "APK exported:"
-          ls -la "build/android/${EXPORT_NAME}.apk"
-
-      - name: Zipalign APK
-        run: |
-          echo "=== Zipaligning APK ==="
-          APK_PATH="build/android/${EXPORT_NAME}.apk"
-          
-          # Verify Godot built-in signature
-          jarsigner -verify "$APK_PATH" && echo "Godot built-in signature OK"
-          
-          # Zipalign only - do NOT re-sign
-          BUILD_TOOLS_DIR=$(ls -d "$ANDROID_HOME/build-tools"/*/ 2>/dev/null | sort -V | tail -1)
-          if [ -n "$BUILD_TOOLS_DIR" ] && [ -x "${BUILD_TOOLS_DIR}zipalign" ]; then
-            echo "Zipaligning with ${BUILD_TOOLS_DIR}..."
-            "${BUILD_TOOLS_DIR}zipalign" -f -v 4 "$APK_PATH" "${APK_PATH%.apk}-aligned.apk"
-            mv -f "${APK_PATH%.apk}-aligned.apk" "$APK_PATH"
-            echo "Zipalign done"
-          fi
-          
-          echo "Final APK:"
-          ls -la "$APK_PATH"
+          echo 'APK exported:'
+          ls -la 'build/android/${EXPORT_NAME}.apk'
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -117,4 +92,4 @@ jobs:
         if: always()
         run: |
           rm -f build/keystore/debug.keystore 2>/dev/null || true
-          echo "Keystore cleaned up for security"
+          echo 'Keystore cleaned up'
