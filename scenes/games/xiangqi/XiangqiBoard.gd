@@ -430,21 +430,33 @@ func _try_haptic(ms: int) -> void:
 
 # ── 绘制 ─────────────────────────────────────────────────
 func _draw() -> void:
+	# ── 天天象棋暖木棋院质感 ─────────────────────────────────
 	var outer := Rect2(Vector2.ZERO, size)
-	var r_outer: float = clamp(_cell * 0.42, 16, 24)
+	var r_outer: float = clamp(_cell * 0.32, 10, 14) # TianTian 木框更方正，不过度圆角
+	# 深胡桃木外框
 	_draw_rounded_rect(outer, r_outer, ApplePalette.BOARD_FRAME)
-	_draw_rounded_rect_outline(outer.grow(-1), r_outer, ApplePalette.BOARD_FRAME_HIGHLIGHT, 1.0)
-	# 顶部高光
-	draw_line(Vector2(_frame_thick, _frame_thick - 5), Vector2(size.x - _frame_thick, _frame_thick - 5), Color("#D4A574", 0.12), 1.0)
-	# 羊皮纸
+	# 木框内侧黄铜细线 + 顶部高光（棋院灯光）
+	_draw_rounded_rect_outline(outer.grow(-1), r_outer, ApplePalette.BOARD_FRAME_HIGHLIGHT, 1.2)
+	draw_line(Vector2(_frame_thick, _frame_thick - 4), Vector2(size.x - _frame_thick, _frame_thick - 4), Color("#E8C9A0", 0.18), 1.0)
+	# 木纹肌理：横向细腻木纹噪点（用低 alpha 直线模拟真实木纹）
+	var wood_mid: Color = ApplePalette.BOARD_WOOD_MID
+	for wy in range(9):
+		var wy_pos: float = outer.position.y + outer.size.y * (0.08 + wy * 0.11)
+		var wa: float = 0.06 + fmod(wy * 0.37, 0.04)
+		draw_line(Vector2(outer.position.x + 8, wy_pos), Vector2(outer.position.x + outer.size.x - 8, wy_pos + 0.8), Color(wood_mid.r, wood_mid.g, wood_mid.b, wa), 1.0)
+		# 第二层斜纹
+		if wy % 2 == 0:
+			draw_line(Vector2(outer.position.x + 16, wy_pos + 3), Vector2(outer.position.x + outer.size.x - 16, wy_pos + 3.6), Color(ApplePalette.BOARD_WOOD_LIGHT.r, ApplePalette.BOARD_WOOD_LIGHT.g, ApplePalette.BOARD_WOOD_LIGHT.b, 0.05), 1.0)
+	# 米黄宣纸棋面 — 像天天象棋的纸面，暖而干净
 	var paper := Rect2(Vector2(_frame_thick, _frame_thick), size - Vector2(_frame_thick * 2, _frame_thick * 2))
-	_draw_rounded_rect(paper, r_outer - 6, ApplePalette.BOARD_PAPER)
-	# 细腻纸纹
-	var grain: Color = Color("#8C6A3A", 0.055)
-	for gy in range(7):
-		var yy: float = paper.position.y + paper.size.y * (0.12 + gy * 0.12)
-		draw_line(Vector2(paper.position.x + 12, yy), Vector2(paper.position.x + paper.size.x - 12, yy + 0.7), grain, 1.0)
-	draw_line(paper.position + Vector2(0, 1), paper.position + Vector2(paper.size.x, 1), Color("#000000", 0.07), 1.0)
+	_draw_rounded_rect(paper, r_outer - 4, ApplePalette.BOARD_PAPER)
+	# 纸面细微横纹 + 顶部压线
+	var paper_grain: Color = Color("#8B5A2B", 0.045)
+	for gy in range(6):
+		var yy: float = paper.position.y + paper.size.y * (0.14 + gy * 0.13)
+		draw_line(Vector2(paper.position.x + 14, yy), Vector2(paper.position.x + paper.size.x - 14, yy + 0.6), paper_grain, 1.0)
+	draw_line(paper.position + Vector2(6, 1), paper.position + Vector2(paper.size.x - 6, 1), Color("#000000", 0.06), 1.0)
+	draw_line(paper.position + Vector2(1, 6), paper.position + Vector2(1, paper.size.y - 6), Color("#FFFFFF", 0.35), 1.0) # 左侧纸张高光
 
 	# 网格
 	var river_top: float = _origin.y + 4 * _cell
@@ -480,14 +492,14 @@ func _draw() -> void:
 	# 上一步淡化
 	var last_alpha: float = 1.0 - _anim_progress * 0.55 if _anim_piece != 0 else 1.0
 	if last_move_from.x != -1:
-		_highlight_square(last_move_from, Color("#D4A574", 0.16 * last_alpha), 12)
+		_highlight_square(last_move_from, Color(ApplePalette.BOARD_LAST_MOVE.r, ApplePalette.BOARD_LAST_MOVE.g, ApplePalette.BOARD_LAST_MOVE.b, 0.42 * last_alpha), 10)
 	if last_move_to.x != -1 and not (_anim_piece != 0 and _anim_to == last_move_to):
-		_highlight_square(last_move_to, Color("#D4A574", 0.22 * last_alpha), 12)
+		_highlight_square(last_move_to, Color(ApplePalette.BOARD_LAST_MOVE.r, ApplePalette.BOARD_LAST_MOVE.g, ApplePalette.BOARD_LAST_MOVE.b, 0.52 * last_alpha), 10)
 	# 选中高光：拖拽中隐藏原位高光，改为拖拽态
 	if selected.x != -1 and not (_is_dragging and selected == _drag_from):
-		_highlight_square(selected, Color("#2EC4B6", 0.10), 12)
-		_draw_square_ring(selected, ApplePalette.GOLD, 2.2, 12)
-		_draw_square_ring(selected, Color("#D4A574", 0.22), 7.0, 12)
+		_highlight_square(selected, Color(ApplePalette.BOARD_LAST_MOVE.r, ApplePalette.BOARD_LAST_MOVE.g, ApplePalette.BOARD_LAST_MOVE.b, 0.55), 10)
+		_draw_square_ring(selected, ApplePalette.BOARD_SELECT_RING, 2.4, 10)
+		_draw_square_ring(selected, Color(ApplePalette.BOARD_SELECT_RING.r, ApplePalette.BOARD_SELECT_RING.g, ApplePalette.BOARD_SELECT_RING.b, 0.20), 7.0, 10)
 	# 合法落点 — 手机端超大、脉冲、带标签
 	for t in legal_targets:
 		var c: Vector2 = board_to_local(t.x, t.y)
@@ -498,23 +510,23 @@ func _draw() -> void:
 		var pulse: float = 1.0 + sin(_pulse_t * 3.0) * 0.08
 		var dragging_dim: float = 0.96 if _is_dragging else 1.0
 		if is_capture:
-			# 吃子：赤环+金内环+跳动
-			var r_out: float = (20 + sin(_pulse_t * 4.0) * 1.2) * (_cell / 52.0)
-			draw_arc(c, r_out, 0, TAU, 32, Color("#E8583A", 0.95 * dragging_dim), 3.0)
-			draw_arc(c, r_out - 3, 0, TAU, 32, Color("#D4A574", 0.50), 1.2)
-			draw_circle(c, 6 * (_cell / 52.0), Color("#E8583A", 0.20))
+			# 天天象棋吃子：朱红粗环 + 暖金内环，跳动提示可吃
+			var r_out: float = (20 + sin(_pulse_t * 4.0) * 1.0) * (_cell / 52.0)
+			draw_arc(c, r_out, 0, TAU, 32, Color(ApplePalette.DANGER.r, ApplePalette.DANGER.g, ApplePalette.DANGER.b, 0.92 * dragging_dim), 3.2)
+			draw_arc(c, r_out - 3.5, 0, TAU, 32, Color(ApplePalette.GOLD.r, ApplePalette.GOLD.g, ApplePalette.GOLD.b, 0.45), 1.1)
+			draw_circle(c, 6 * (_cell / 52.0), Color(ApplePalette.DANGER.r, ApplePalette.DANGER.g, ApplePalette.DANGER.b, 0.16))
 		else:
-			# 空点：teal 实心+白芯+鎏金外晕，拖拽时更大更亮
+			# 天天象棋落点：翡翠绿实心 + 白芯，像天天象棋的小绿点，拖拽时更亮
 			var s: float = (_cell / 52.0) * pulse
-			var base_r: float = 12 if _is_dragging else 10
-			var inner_r: float = 5.2 if _is_dragging else 4.2
-			var halo_r: float = base_r + 3 if _is_dragging else base_r + 1.2
-			draw_circle(c, halo_r * s, Color("#D4A574", 0.18 if _is_dragging else 0.10))
-			draw_circle(c, base_r * s, Color("#2EC4B6", 0.22 * dragging_dim))
-			draw_circle(c, (base_r - 1.5) * s, Color("#2EC4B6", 0.96))
+			var base_r: float = 11 if _is_dragging else 9
+			var inner_r: float = 4.8 if _is_dragging else 3.6
+			var halo_r: float = base_r + 4 if _is_dragging else base_r + 2
+			draw_circle(c, halo_r * s, Color(ApplePalette.TEAL.r, ApplePalette.TEAL.g, ApplePalette.TEAL.b, 0.16 if _is_dragging else 0.08))
+			draw_circle(c, base_r * s, Color(ApplePalette.TEAL.r, ApplePalette.TEAL.g, ApplePalette.TEAL.b, 0.18 * dragging_dim))
+			draw_circle(c, (base_r - 1.8) * s, ApplePalette.TEAL)
 			draw_circle(c, inner_r * s, Color.WHITE)
 			if _is_dragging:
-				draw_arc(c, base_r * s, 0, TAU, 24, Color.WHITE, 1.0)
+				draw_arc(c, base_r * s, 0, TAU, 24, Color.WHITE, 0.9)
 
 	if board.is_empty():
 		return
@@ -607,7 +619,7 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 		draw_circle(center + Vector2(0, 3), r, Color("#000000", 0.24 * alpha))
 		draw_circle(center + Vector2(0, 1.2), r, Color("#000000", 0.10 * alpha))
 	var ring_col: Color = ApplePalette.PIECE_RED if is_red else ApplePalette.PIECE_BLACK
-	var ring_highlight: Color = Color("#E7A87A") if is_red else Color("#4A5A73")
+	var ring_highlight: Color = Color("#E8A87A") if is_red else Color("#5A5A60")
 	ring_col.a *= alpha
 	ring_highlight.a *= alpha
 	draw_circle(center, r, ring_col)

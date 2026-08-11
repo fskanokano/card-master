@@ -14,7 +14,7 @@ name="CardMaster"
 run/main_scene="res://scenes/lobby/Lobby.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
-boot_splash/bg_color=Color(0.04, 0.055, 0.078, 1)
+boot_splash/bg_color=Color(0.059, 0.078, 0.063, 1)
 
 [autoload]
 
@@ -46,7 +46,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc=true
 textures/vram_compression/import_etc2=true
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.039, 0.055, 0.078, 1)
+environment/defaults/default_clear_color=Color(0.059, 0.078, 0.063, 1)
 
 [input]
 

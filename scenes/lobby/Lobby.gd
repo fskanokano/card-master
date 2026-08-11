@@ -131,7 +131,7 @@ func _update_responsive() -> void:
 func _apply_shell() -> void:
 	var top_nav: Panel = get_node("TopNav")
 	var nav_sb := StyleBoxFlat.new()
-	nav_sb.bg_color = Color("#0D1219", 0.98)
+	nav_sb.bg_color = Color("#141A14", 0.98)
 	nav_sb.corner_radius_top_left = 0; nav_sb.corner_radius_top_right = 0
 	nav_sb.corner_radius_bottom_right = 0; nav_sb.corner_radius_bottom_left = 0
 	nav_sb.border_color = ApplePalette.SEPARATOR; nav_sb.border_width_bottom = 1
@@ -144,7 +144,7 @@ func _apply_shell() -> void:
 	logo_mark.add_theme_stylebox_override("panel", lm)
 	var name_wrap_p: Panel = get_node("TopNav/NavInner/NameWrap")
 	var nw := StyleBoxFlat.new()
-	nw.bg_color = Color("#0D1219")
+	nw.bg_color = Color("#141A14")
 	nw.corner_radius_top_left = 12; nw.corner_radius_top_right = 12; nw.corner_radius_bottom_right = 12; nw.corner_radius_bottom_left = 12
 	nw.border_color = ApplePalette.SEPARATOR; nw.border_width_left = 1; nw.border_width_top = 1; nw.border_width_right = 1; nw.border_width_bottom = 1
 	nw.content_margin_left = 12; nw.content_margin_top = 6; nw.content_margin_right = 12; nw.content_margin_bottom = 6
@@ -166,7 +166,7 @@ func _apply_shell() -> void:
 	AppleStyle.apply_hero(get_node("MainScroll/CenterWrap/Content/HeroCard"))
 	var hero_right: Panel = get_node("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight")
 	var hr := StyleBoxFlat.new()
-	hr.bg_color = Color("#0D1219")
+	hr.bg_color = Color("#141A14")
 	hr.corner_radius_top_left = 16; hr.corner_radius_top_right = 16; hr.corner_radius_bottom_right = 16; hr.corner_radius_bottom_left = 16
 	hr.border_color = ApplePalette.HAIRLINE_GOLD; hr.border_width_left = 1; hr.border_width_top = 1; hr.border_width_right = 1; hr.border_width_bottom = 1
 	hr.shadow_color = ApplePalette.SHADOW_SOFT; hr.shadow_size = 14
@@ -177,7 +177,7 @@ func _apply_shell() -> void:
 	AppleStyle.apply_glass(_room_info)
 	var empty: Panel = get_node("MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/RoomsEmpty")
 	var es := StyleBoxFlat.new()
-	es.bg_color = Color("#0D1219")
+	es.bg_color = Color("#141A14")
 	es.corner_radius_top_left = 14; es.corner_radius_top_right = 14; es.corner_radius_bottom_right = 14; es.corner_radius_bottom_left = 14
 	es.border_color = ApplePalette.SEPARATOR; es.border_width_left = 1; es.border_width_top = 1; es.border_width_right = 1; es.border_width_bottom = 1
 	es.content_margin_left = 16; es.content_margin_top = 18; es.content_margin_right = 16; es.content_margin_bottom = 18
@@ -315,12 +315,12 @@ func _make_game_card(g: Dictionary) -> Control:
 	card.mouse_filter = Control.MOUSE_FILTER_STOP if available else Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	if available and id == _selected_id:
-		sb.bg_color = Color("#131B28")
+		sb.bg_color = Color("#1A1F18")
 		sb.corner_radius_top_left = 20; sb.corner_radius_top_right = 20; sb.corner_radius_bottom_right = 20; sb.corner_radius_bottom_left = 20
 		sb.border_color = ApplePalette.GOLD; sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1
 		sb.shadow_color = ApplePalette.GLOW_GOLD; sb.shadow_size = 20
 	else:
-		sb.bg_color = Color("#0F1621")
+		sb.bg_color = Color("#151A14")
 		sb.corner_radius_top_left = 20; sb.corner_radius_top_right = 20; sb.corner_radius_bottom_right = 20; sb.corner_radius_bottom_left = 20
 		sb.border_color = ApplePalette.SEPARATOR; sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1
 		sb.shadow_color = ApplePalette.SHADOW_SOFT; sb.shadow_size = 12
@@ -335,7 +335,7 @@ func _make_game_card(g: Dictionary) -> Control:
 	cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var cover_sb := StyleBoxFlat.new()
 	match id:
-		"xiangqi": cover_sb.bg_color = Color("#162433")
+		"xiangqi": cover_sb.bg_color = Color("#2B1E12")
 		"chess_placeholder": cover_sb.bg_color = Color("#1A2A26")
 		"go_placeholder": cover_sb.bg_color = Color("#241E1A")
 		_: cover_sb.bg_color = Color("#141E2E")
@@ -362,7 +362,7 @@ func _make_game_card(g: Dictionary) -> Control:
 	badge.custom_minimum_size = Vector2(0, 24)
 	var badge_sb := StyleBoxFlat.new()
 	if available:
-		badge_sb.bg_color = Color("#D4A574")
+		badge_sb.bg_color = Color("#C8A46A")
 	else:
 		badge_sb.bg_color = Color("#1E2937")
 	badge_sb.corner_radius_top_left = 20; badge_sb.corner_radius_top_right = 20; badge_sb.corner_radius_bottom_right = 20; badge_sb.corner_radius_bottom_left = 20
@@ -521,12 +521,12 @@ func _update_selection_visuals() -> void:
 		if sb is StyleBoxFlat:
 			var flat: StyleBoxFlat = sb as StyleBoxFlat
 			if is_sel:
-				flat.bg_color = Color("#131B28")
+				flat.bg_color = Color("#1A1F18")
 				flat.border_color = ApplePalette.GOLD
 				flat.shadow_color = ApplePalette.GLOW_GOLD
 				flat.shadow_size = 18
 			else:
-				flat.bg_color = Color("#0F1621")
+				flat.bg_color = Color("#151A14")
 				flat.border_color = ApplePalette.SEPARATOR
 				flat.shadow_color = ApplePalette.SHADOW_SOFT
 				flat.shadow_size = 10
@@ -655,7 +655,7 @@ func _refresh_rooms() -> void:
 func _make_room_row(info: Dictionary) -> Control:
 	var card := Panel.new()
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#0D1219")
+	sb.bg_color = Color("#141A14")
 	sb.corner_radius_top_left = 14; sb.corner_radius_top_right = 14; sb.corner_radius_bottom_right = 14; sb.corner_radius_bottom_left = 14
 	sb.border_color = ApplePalette.SEPARATOR; sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1
 	sb.content_margin_left = 14; sb.content_margin_top = 12; sb.content_margin_right = 14; sb.content_margin_bottom = 12

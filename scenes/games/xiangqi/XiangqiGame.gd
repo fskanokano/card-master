@@ -89,7 +89,7 @@ func _apply_immersive_insets() -> void:
 func _apply_enterprise_chrome() -> void:
 	var top: Panel = get_node("TopBar")
 	var tsb := StyleBoxFlat.new()
-	tsb.bg_color = Color("#0D1219", 0.98)
+	tsb.bg_color = Color("#141A14", 0.98)
 	tsb.corner_radius_top_left = 0; tsb.corner_radius_top_right = 0; tsb.corner_radius_bottom_right = 0; tsb.corner_radius_bottom_left = 0
 	tsb.border_color = ApplePalette.SEPARATOR; tsb.border_width_bottom = 1
 	tsb.content_margin_left = 14; tsb.content_margin_top = 10; tsb.content_margin_right = 14; tsb.content_margin_bottom = 10
@@ -102,20 +102,20 @@ func _apply_enterprise_chrome() -> void:
 	if ten != null:
 		ten.add_theme_font_size_override("font_size", 11)
 	var sc_sb := StyleBoxFlat.new()
-	sc_sb.bg_color = Color("#111A26")
+	sc_sb.bg_color = Color("#1A1F18")
 	sc_sb.corner_radius_top_left = 14; sc_sb.corner_radius_top_right = 14; sc_sb.corner_radius_bottom_right = 14; sc_sb.corner_radius_bottom_left = 14
 	sc_sb.border_color = ApplePalette.HAIRLINE_GOLD; sc_sb.border_width_left = 1; sc_sb.border_width_top = 1; sc_sb.border_width_right = 1; sc_sb.border_width_bottom = 1
 	sc_sb.content_margin_left = 14; sc_sb.content_margin_top = 7; sc_sb.content_margin_right = 14; sc_sb.content_margin_bottom = 7
 	_status_card.add_theme_stylebox_override("panel", sc_sb)
 	var bot: Panel = get_node("BottomBar")
 	var bsb := StyleBoxFlat.new()
-	bsb.bg_color = Color("#0D1219", 0.98)
+	bsb.bg_color = Color("#141A14", 0.98)
 	bsb.border_color = ApplePalette.SEPARATOR; bsb.border_width_top = 1
 	bsb.content_margin_left = 14; bsb.content_margin_top = 12; bsb.content_margin_right = 14; bsb.content_margin_bottom = 12
 	bot.add_theme_stylebox_override("panel", bsb)
 	var badge: Panel = get_node("BottomBar/BottomInner/BottomBadge")
 	var badge_sb := StyleBoxFlat.new()
-	badge_sb.bg_color = Color("#111A26")
+	badge_sb.bg_color = Color("#1A1F18")
 	badge_sb.corner_radius_top_left = 20; badge_sb.corner_radius_top_right = 20; badge_sb.corner_radius_bottom_right = 20; badge_sb.corner_radius_bottom_left = 20
 	badge_sb.border_color = ApplePalette.SEPARATOR; badge_sb.border_width_left = 1; badge_sb.border_width_top = 1; badge_sb.border_width_right = 1; badge_sb.border_width_bottom = 1
 	badge_sb.content_margin_left = 10; badge_sb.content_margin_top = 5; badge_sb.content_margin_right = 10; badge_sb.content_margin_bottom = 5
@@ -368,7 +368,7 @@ func _refresh_ui() -> void:
 		var sc: StyleBoxFlat = _status_card.get_theme_stylebox("panel") as StyleBoxFlat
 		if sc != null:
 			sc.border_color = ApplePalette.RED
-			sc.bg_color = Color("#1A1214")
+			sc.bg_color = Color("#221610")
 		_board_view.interactable = false
 		return
 	var side_name: String = "红方" if _side_to_move == XiangqiLogic.RED else "黑方"
@@ -401,13 +401,13 @@ func _refresh_ui() -> void:
 	var sc2: StyleBoxFlat = _status_card.get_theme_stylebox("panel") as StyleBoxFlat
 	if sc2 != null:
 		sc2.border_color = ApplePalette.HAIRLINE_GOLD
-		sc2.bg_color = Color("#111A26")
+		sc2.bg_color = Color("#1A1F18")
 	if XiangqiLogic.is_in_check(_board, _side_to_move):
 		_status_label.text += "  ·  将军！"
 		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
 		if sc2 != null:
 			sc2.border_color = ApplePalette.RED
-			sc2.bg_color = Color("#1A1214")
+			sc2.bg_color = Color("#221610")
 	_board_view.interactable = not _game_over and not _ai_thinking and not _is_animating and my_turn
 
 @rpc("any_peer", "call_local", "reliable")
