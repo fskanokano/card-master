@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/lobby/Lobby.gd" id="1_lobby"]
 
-[node name="Lobby" type="Control" groups=["apple_root"]]
+[node name="Lobby" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -18,10 +18,50 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.941176, 0.941176, 0.968627, 1)
+color = Color(0.0392157, 0.054902, 0.0784314, 1)
 mouse_filter = 2
 
-[node name="Center" type="VBoxContainer" parent="."]
+[node name="BgGlowTop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 520.0
+grow_horizontal = 2
+color = Color(0.0823529, 0.121569, 0.176471, 1)
+mouse_filter = 2
+
+[node name="BgGlowGold" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 680.0
+offset_top = 96.0
+offset_bottom = 420.0
+grow_horizontal = 2
+color = Color(0.831373, 0.647059, 0.454902, 0.045)
+mouse_filter = 2
+
+[node name="BgVignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.22)
+mouse_filter = 2
+
+[node name="TopNav" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 64.0
+grow_horizontal = 2
+
+[node name="NavInner" type="HBoxContainer" parent="TopNav"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -29,256 +69,561 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 alignment = 1
-mouse_filter = 2
+theme_override_constants/separation = 16
 
-[node name="Scroll" type="ScrollContainer" parent="Center"]
-custom_minimum_size = Vector2(480, 1)
+[node name="LogoMark" type="Panel" parent="TopNav/NavInner"]
+custom_minimum_size = Vector2(40, 40)
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
+size_flags_vertical = 4
 
-[node name="Content" type="VBoxContainer" parent="Center/Scroll"]
-custom_minimum_size = Vector2(480, 0)
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 14
-
-[node name="HeaderCard" type="Panel" parent="Center/Scroll/Content"]
-custom_minimum_size = Vector2(0, 112)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HeaderInner" type="VBoxContainer" parent="Center/Scroll/Content/HeaderCard"]
+[node name="LogoGlyph" type="Label" parent="TopNav/NavInner/LogoMark"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
-
-[node name="Title" type="Label" parent="Center/Scroll/Content/HeaderCard/HeaderInner"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 34
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-text = "卡牌大师"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.101961, 0.0705882, 0.0313726, 1)
+text = "CM"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Center/Scroll/Content/HeaderCard/HeaderInner"]
+[node name="LogoText" type="VBoxContainer" parent="TopNav/NavInner"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="LogoEN" type="Label" parent="TopNav/NavInner/LogoText"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "游戏大厅  •  选择游戏，然后选择玩法"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
+text = "CARDMASTER"
 
-[node name="NameRow" type="HBoxContainer" parent="Center/Scroll/Content"]
+[node name="LogoCN" type="Label" parent="TopNav/NavInner/LogoText"]
 layout_mode = 2
-alignment = 0
-theme_override_constants/separation = 8
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.831373, 0.647059, 0.454902, 1)
+text = "卡牌大师 · ATELIER"
 
-[node name="NameLabel" type="Label" parent="Center/Scroll/Content/NameRow"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "你的名字"
-
-[node name="NameInput" type="LineEdit" parent="Center/Scroll/Content/NameRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 36)
+[node name="NavSpacer" type="Control" parent="TopNav/NavInner"]
+custom_minimum_size = Vector2(16, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "玩家"
 
-[node name="GamesLabel" type="Label" parent="Center/Scroll/Content"]
+[node name="NameWrap" type="Panel" parent="TopNav/NavInner"]
+custom_minimum_size = Vector2(240, 40)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="NameInner" type="HBoxContainer" parent="TopNav/NavInner/NameWrap"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="NameLabel" type="Label" parent="TopNav/NavInner/NameWrap/NameInner"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
+text = "玩家"
+
+[node name="NameInput" type="LineEdit" parent="TopNav/NavInner/NameWrap/NameInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 32)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入你的名字"
+
+[node name="NavBadge" type="Panel" parent="TopNav/NavInner"]
+custom_minimum_size = Vector2(88, 28)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="BadgeLabel" type="Label" parent="TopNav/NavInner/NavBadge"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.941176, 0.647059, 0.454902, 1)
+text = "●  在线"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MainScroll" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 64.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="CenterWrap" type="CenterContainer" parent="MainScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Content" type="VBoxContainer" parent="MainScroll/CenterWrap"]
+custom_minimum_size = Vector2(1040, 0)
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 0
+
+[node name="HeroCard" type="Panel" parent="MainScroll/CenterWrap/Content"]
+custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HeroInner" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="HeroLeft" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner"]
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Eyebrow" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.831373, 0.647059, 0.454902, 1)
+text = "EST. 2026  ·  BOARD ATELIER  ·  EDITION I"
+
+[node name="HeroTitle" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 46
+theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
+text = "卡牌大师"
+
+[node name="HeroTitleEN" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "游戏"
+theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
+text = "CARDMASTER  —  匠心对局，无问西东"
 
-[node name="GameGrid" type="GridContainer" parent="Center/Scroll/Content"]
+[node name="HeroDesc" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.670588, 0.701961, 0.760784, 1)
+text = "象棋开局，围棋与国际象棋已在路上。为收藏级对局而生的游戏大厅。"
+autowrap_mode = 3
+
+[node name="HeroStats" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Stat1" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Stat1Num" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats/Stat1"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.941176, 0.807843, 0.541176, 1)
+text = "1"
+
+[node name="Stat1Label" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats/Stat1"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "已上线"
+
+[node name="StatSep1" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.08)
+text = "│"
+
+[node name="Stat2" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Stat2Num" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats/Stat2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.941176, 0.807843, 0.541176, 1)
+text = "4"
+
+[node name="Stat2Label" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats/Stat2"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "对战模式"
+
+[node name="StatSep2" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.08)
+text = "│"
+
+[node name="Stat3" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Stat3Num" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats/Stat3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.941176, 0.807843, 0.541176, 1)
+text = "LAN · AI"
+
+[node name="Stat3Label" type="Label" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats/Stat3"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "多人就绪"
+
+[node name="HeroActions" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BtnAI" type="Button" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 48)
+layout_mode = 2
+text = "▶  人机对战"
+
+[node name="BtnCreateRoom" type="Button" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 48)
+layout_mode = 2
+text = "创建房间"
+
+[node name="BtnBrowseRooms" type="Button" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+text = "浏览房间"
+
+[node name="BtnOnline" type="Button" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 48)
+layout_mode = 2
+text = "在线对战"
+
+[node name="HeroRight" type="Panel" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner"]
+custom_minimum_size = Vector2(320, 220)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="HeroBoardPreview" type="Control" parent="MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SectionGames" type="HBoxContainer" parent="MainScroll/CenterWrap/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 0
+
+[node name="GamesLabel" type="Label" parent="MainScroll/CenterWrap/Content/SectionGames"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.831373, 0.647059, 0.454902, 1)
+text = "—  精选对局  COLLECTION"
+
+[node name="GamesSpacer" type="Control" parent="MainScroll/CenterWrap/Content/SectionGames"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GamesHint" type="Label" parent="MainScroll/CenterWrap/Content/SectionGames"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "点击卡片选取 · 匠心打磨每一局"
+
+[node name="GameGrid" type="GridContainer" parent="MainScroll/CenterWrap/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 columns = 3
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
 alignment = 1
 
-[node name="ModesLabel" type="Label" parent="Center/Scroll/Content"]
+[node name="SectionModes" type="HBoxContainer" parent="MainScroll/CenterWrap/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ModesLabel" type="Label" parent="MainScroll/CenterWrap/Content/SectionModes"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "玩法模式"
+theme_override_colors/font_color = Color(0.831373, 0.647059, 0.454902, 1)
+text = "—  对战方式  MODES"
 
-[node name="ModesCard" type="Panel" parent="Center/Scroll/Content"]
+[node name="ModesSpacer" type="Control" parent="MainScroll/CenterWrap/Content/SectionModes"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ModeRow" type="HBoxContainer" parent="Center/Scroll/Content/ModesCard"]
+[node name="ModeCount" type="Label" parent="MainScroll/CenterWrap/Content/SectionModes"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "AI · 局域网 · 在线（即将上线）"
+
+[node name="ModesCard" type="Panel" parent="MainScroll/CenterWrap/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ModeRow" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/ModesCard"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-alignment = 1
 theme_override_constants/separation = 10
+alignment = 1
 
-[node name="BtnAI" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
-unique_name_in_owner = true
+[node name="BtnAISeg" type="Button" parent="MainScroll/CenterWrap/Content/ModesCard/ModeRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "人机对战"
 
-[node name="BtnCreateRoom" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
-unique_name_in_owner = true
+[node name="BtnCreateSeg" type="Button" parent="MainScroll/CenterWrap/Content/ModesCard/ModeRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "创建房间"
 
-[node name="BtnBrowseRooms" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
-unique_name_in_owner = true
+[node name="BtnBrowseSeg" type="Button" parent="MainScroll/CenterWrap/Content/ModesCard/ModeRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "浏览房间"
 
-[node name="BtnOnline" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
-unique_name_in_owner = true
+[node name="BtnOnlineSeg" type="Button" parent="MainScroll/CenterWrap/Content/ModesCard/ModeRow"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "在线对战"
 
-[node name="LanSection" type="VBoxContainer" parent="Center/Scroll/Content"]
+[node name="LanSection" type="VBoxContainer" parent="MainScroll/CenterWrap/Content"]
 unique_name_in_owner = true
 layout_mode = 2
 visible = false
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
-[node name="LanHeader" type="Label" parent="Center/Scroll/Content/LanSection"]
+[node name="LanHeader" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="LanHeaderDot" type="ColorRect" parent="MainScroll/CenterWrap/Content/LanSection/LanHeader"]
+custom_minimum_size = Vector2(8, 8)
+layout_mode = 2
+size_flags_vertical = 4
+color = Color(0.180392, 0.768627, 0.713725, 1)
+
+[node name="LanHeaderLabel" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/LanHeader"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "局域网房间  •  自动发现同一WiFi下的房间"
+theme_override_colors/font_color = Color(0.831373, 0.647059, 0.454902, 1)
+text = "局域网房间  ·  同一 Wi-Fi 自动发现"
 
-[node name="RoomsCard" type="Panel" parent="Center/Scroll/Content/LanSection"]
+[node name="LanHeaderHint" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/LanHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "UDP 广播发现  ·  6 位房间码"
+
+[node name="RoomsCard" type="Panel" parent="MainScroll/CenterWrap/Content/LanSection"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="RoomsInner" type="VBoxContainer" parent="Center/Scroll/Content/LanSection/RoomsCard"]
+[node name="RoomsInner" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
-[node name="RoomsEmpty" type="Label" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner"]
+[node name="RoomsEmpty" type="Panel" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EmptyInner" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/RoomsEmpty"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="EmptyLabel" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/RoomsEmpty/EmptyInner"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "未找到房间。创建一个或输入房间码。"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
+text = "暂未发现房间"
 horizontal_alignment = 1
 
-[node name="RoomsList" type="VBoxContainer" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner"]
+[node name="EmptySub" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/RoomsEmpty/EmptyInner"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "创建一个房间，或输入 6 位房间码加入"
+horizontal_alignment = 1
+
+[node name="RoomsList" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_constants/separation = 10
 
-[node name="JoinRow" type="HBoxContainer" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner"]
+[node name="JoinRow" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
-[node name="RoomCodeInput" type="LineEdit" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner/JoinRow"]
+[node name="RoomCodeInput" type="LineEdit" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/JoinRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "输入 6 位房间码，例如 7XK2PQ"
+
+[node name="BtnJoinCode" type="Button" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/JoinRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "加入房间"
+
+[node name="DirectRow" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DirectIPInput" type="LineEdit" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/DirectRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "输入6位房间码，例如 7XK2PQ"
+placeholder_text = "或直连 IP  ·  192.168.1.10  或  192.168.1.10:7777"
 
-[node name="BtnJoinCode" type="Button" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner/JoinRow"]
+[node name="BtnDirectJoin" type="Button" parent="MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/DirectRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 40)
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
-text = "加入"
+text = "IP 直连"
 
-[node name="DirectRow" type="HBoxContainer" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="DirectIPInput" type="LineEdit" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner/DirectRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-size_flags_horizontal = 3
-placeholder_text = "或直接输入IP  •  192.168.1.10"
-
-[node name="BtnDirectJoin" type="Button" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner/DirectRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 36)
-layout_mode = 2
-text = "IP加入"
-
-[node name="RoomInfoCard" type="Panel" parent="Center/Scroll/Content/LanSection"]
+[node name="RoomInfoCard" type="Panel" parent="MainScroll/CenterWrap/Content/LanSection"]
 unique_name_in_owner = true
 layout_mode = 2
 visible = false
 size_flags_horizontal = 3
 
-[node name="RoomInfoInner" type="VBoxContainer" parent="Center/Scroll/Content/LanSection/RoomInfoCard"]
+[node name="RoomInfoInner" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="RoomCodeLabel" type="Label" parent="Center/Scroll/Content/LanSection/RoomInfoCard/RoomInfoInner"]
+[node name="RoomInfoHeader" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="RoomBadge" type="Panel" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomInfoHeader"]
+custom_minimum_size = Vector2(52, 28)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="RoomBadgeLabel" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomInfoHeader/RoomBadge"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.831373, 0.647059, 0.454902, 1)
+text = "房间"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RoomCodeLabel" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomInfoHeader"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-horizontal_alignment = 1
-text = "------"
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
+text = "——  ——  ——"
 
-[node name="RoomSub" type="Label" parent="Center/Scroll/Content/LanSection/RoomInfoCard/RoomInfoInner"]
+[node name="RoomCodeCopy" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomInfoHeader"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "点击复制"
+
+[node name="RoomSub" type="Label" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
+theme_override_colors/font_color = Color(0.670588, 0.701961, 0.760784, 1)
 horizontal_alignment = 1
-text = "Share this code with a friend on the same Wi-Fi"
+text = "将此房间码分享给同一 Wi-Fi 下的好友"
 
-[node name="RoomActions" type="HBoxContainer" parent="Center/Scroll/Content/LanSection/RoomInfoCard/RoomInfoInner"]
+[node name="RoomActions" type="HBoxContainer" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="BtnStartGame" type="Button" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+text = "开始对局"
+
+[node name="BtnLeaveRoom" type="Button" parent="MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomActions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "离开房间"
+
+[node name="Hint" type="Label" parent="MainScroll/CenterWrap/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+horizontal_alignment = 1
+
+[node name="Footer" type="HBoxContainer" parent="MainScroll/CenterWrap/Content"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 8
 
-[node name="BtnStartGame" type="Button" parent="Center/Scroll/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomActions"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(140, 40)
+[node name="FooterLine" type="Label" parent="MainScroll/CenterWrap/Content/Footer"]
 layout_mode = 2
-text = "开始游戏"
-
-[node name="BtnLeaveRoom" type="Button" parent="Center/Scroll/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomActions"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 40)
-layout_mode = 2
-text = "离开"
-
-[node name="Hint" type="Label" parent="Center/Scroll/Content"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-horizontal_alignment = 1
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.294118, 0.333333, 0.388235, 1)
+text = "© 2026 CARDMASTER ATELIER  ·  Crafted for collectors  ·  v1.0"
 
 [node name="OnlineDialog" type="AcceptDialog" parent="."]
 unique_name_in_owner = true
-title = "Online"
-ok_button_text = "OK"
-dialog_text = "Online play is coming soon. This is a placeholder for future WAN integration."
+title = "在线对战"
+ok_button_text = "知道了"
+dialog_text = "在线对战正在接入中。当前可先体验人机与局域网对战。我们正在为企业级在线服务做最后的打磨。"

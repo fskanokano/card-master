@@ -18,93 +18,177 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.949, 0.949, 0.973, 1)
+color = Color(0.0392157, 0.054902, 0.0784314, 1)
 mouse_filter = 2
+
+[node name="BgGlow" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 56.0
+offset_bottom = 320.0
+grow_horizontal = 2
+color = Color(0.0823529, 0.121569, 0.176471, 1)
+mouse_filter = 2
+
+[node name="BgVignette" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.18)
+mouse_filter = 2
+
+[node name="TopBar" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 64.0
+grow_horizontal = 2
+
+[node name="TopInner" type="HBoxContainer" parent="TopBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnLobby" type="Button" parent="TopBar/TopInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 40)
+layout_mode = 2
+text = "‹  大厅"
+
+[node name="TopTitle" type="VBoxContainer" parent="TopBar/TopInner"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="TitleCN" type="Label" parent="TopBar/TopInner/TopTitle"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
+text = "中国象棋  ·  XIANGQI"
+horizontal_alignment = 1
+
+[node name="TitleEN" type="Label" parent="TopBar/TopInner/TopTitle"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.419608, 0.470588, 0.541176, 1)
+text = "楚河汉界  ·  匠心对局"
+horizontal_alignment = 1
+
+[node name="StatusCard" type="Panel" parent="TopBar/TopInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="StatusLabel" type="Label" parent="TopBar/TopInner/StatusCard"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
+text = "红方走棋"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnNew" type="Button" parent="TopBar/TopInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 40)
+layout_mode = 2
+text = "新局"
+
+[node name="BtnUndo" type="Button" parent="TopBar/TopInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 40)
+layout_mode = 2
+text = "悔棋"
 
 [node name="BoardWrap" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 64.0
+offset_bottom = -52.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="XiangqiBoard" type="Control" parent="BoardWrap"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(540, 600)
+custom_minimum_size = Vector2(560, 620)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_board")
 
-[node name="TopBar" type="HBoxContainer" parent="."]
+[node name="BottomBar" type="Panel" parent="."]
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
-offset_left = 12.0
-offset_top = 8.0
-offset_right = -12.0
-offset_bottom = 52.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -52.0
+offset_right = 0.0
+offset_bottom = 0.0
 grow_horizontal = 2
-theme_override_constants/separation = 10
+grow_vertical = 0
 
-[node name="BtnLobby" type="Button" parent="TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(90, 40)
-layout_mode = 2
-text = "返回大厅"
-
-[node name="Spacer" type="Control" parent="TopBar"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="StatusCard" type="Panel" parent="TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-size_flags_vertical = 4
-
-[node name="StatusLabel" type="Label" parent="TopBar/StatusCard"]
-unique_name_in_owner = true
+[node name="BottomInner" type="HBoxContainer" parent="BottomBar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-text = "红方走棋"
-horizontal_alignment = 1
-vertical_alignment = 1
+theme_override_constants/separation = 12
+alignment = 1
 
-[node name="BtnNew" type="Button" parent="TopBar"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 40)
+[node name="HintDot" type="ColorRect" parent="BottomBar/BottomInner"]
+custom_minimum_size = Vector2(6, 6)
 layout_mode = 2
-text = "新局"
+size_flags_vertical = 4
+color = Color(0.831373, 0.647059, 0.454902, 1)
 
-[node name="BtnUndo" type="Button" parent="TopBar"]
+[node name="SubLabel" type="Label" parent="BottomBar/BottomInner"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 40)
 layout_mode = 2
-text = "悔棋"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
+text = "点击棋子，再点击鎏金高亮位置  ·  将军时状态栏呈赤色"
+autowrap_mode = 3
 
-[node name="SubLabel" type="Label" parent="."]
-unique_name_in_owner = true
+[node name="BottomBadge" type="Panel" parent="BottomBar/BottomInner"]
+custom_minimum_size = Vector2(96, 24)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="BadgeLabel" type="Label" parent="BottomBar/BottomInner/BottomBadge"]
 layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -44.0
-offset_right = -16.0
-offset_bottom = -8.0
 grow_horizontal = 2
-grow_vertical = 0
-theme_override_font_sizes/font_size = 12
-theme_override_colors/font_color = Color(0.235, 0.235, 0.263, 0.5)
-text = "点击棋子，再点击高亮位置"
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
+text = "v1.0  ·  ATELIER"
 horizontal_alignment = 1
-autowrap_mode = 3
+vertical_alignment = 1

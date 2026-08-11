@@ -1,5 +1,5 @@
 extends GameBase
-## Xiangqi game controller: AI, LAN turn ownership, status chrome — Apple HIG shell.
+## Xiangqi game controller: AI, LAN turn ownership, status chrome — Enterprise Dark-Luxury shell.
 
 var _board: Array = []
 var _side_to_move: int = XiangqiLogic.RED
@@ -23,7 +23,7 @@ var _history: Array = [] # stack of {board, side, last_from, last_to}
 
 func _ready() -> void:
 	game_id = "xiangqi"
-	_apply_apple_chrome()
+	_apply_enterprise_chrome()
 	_resolve_sides()
 	new_game()
 	_wire_board()
@@ -31,15 +31,39 @@ func _ready() -> void:
 	_wire_network()
 	_refresh_ui()
 
-func _apply_apple_chrome() -> void:
-	AppleStyle.apply_card(_status_card)
-	AppleStyle.apply_secondary_button(_btn_undo)
-	AppleStyle.apply_primary_button(_btn_new)
+func _apply_enterprise_chrome() -> void:
+	# Top bar
+	var top: Panel = get_node("TopBar")
+	var tsb := StyleBoxFlat.new()
+	tsb.bg_color = Color("#0D1219", 0.96)
+	tsb.corner_radius_top_left = 0; tsb.corner_radius_top_right = 0; tsb.corner_radius_bottom_right = 0; tsb.corner_radius_bottom_left = 0
+	tsb.border_color = ApplePalette.SEPARATOR; tsb.border_width_bottom = 1
+	tsb.content_margin_left = 16; tsb.content_margin_top = 10; tsb.content_margin_right = 16; tsb.content_margin_bottom = 10
+	top.add_theme_stylebox_override("panel", tsb)
+	# Status card — glass with gold accent when in check
+	var sc_sb := StyleBoxFlat.new()
+	sc_sb.bg_color = Color("#111A26")
+	sc_sb.corner_radius_top_left = 12; sc_sb.corner_radius_top_right = 12; sc_sb.corner_radius_bottom_right = 12; sc_sb.corner_radius_bottom_left = 12
+	sc_sb.border_color = ApplePalette.HAIRLINE_GOLD; sc_sb.border_width_left = 1; sc_sb.border_width_top = 1; sc_sb.border_width_right = 1; sc_sb.border_width_bottom = 1
+	sc_sb.content_margin_left = 12; sc_sb.content_margin_top = 6; sc_sb.content_margin_right = 12; sc_sb.content_margin_bottom = 6
+	_status_card.add_theme_stylebox_override("panel", sc_sb)
+	# Bottom bar
+	var bot: Panel = get_node("BottomBar")
+	var bsb := StyleBoxFlat.new()
+	bsb.bg_color = Color("#0D1219", 0.96)
+	bsb.border_color = ApplePalette.SEPARATOR; bsb.border_width_top = 1
+	bsb.content_margin_left = 16; bsb.content_margin_top = 10; bsb.content_margin_right = 16; bsb.content_margin_bottom = 10
+	bot.add_theme_stylebox_override("panel", bsb)
+	var badge: Panel = get_node("BottomBar/BottomInner/BottomBadge")
+	var badge_sb := StyleBoxFlat.new()
+	badge_sb.bg_color = Color("#111A26")
+	badge_sb.corner_radius_top_left = 20; badge_sb.corner_radius_top_right = 20; badge_sb.corner_radius_bottom_right = 20; badge_sb.corner_radius_bottom_left = 20
+	badge_sb.border_color = ApplePalette.SEPARATOR; badge_sb.border_width_left = 1; badge_sb.border_width_top = 1; badge_sb.border_width_right = 1; badge_sb.border_width_bottom = 1
+	badge_sb.content_margin_left = 8; badge_sb.content_margin_top = 4; badge_sb.content_margin_right = 8; badge_sb.content_margin_bottom = 4
+	badge.add_theme_stylebox_override("panel", badge_sb)
 	AppleStyle.apply_secondary_button(_btn_lobby)
-	# Root bg
-	var bg: ColorRect = get_node_or_null("Bg") as ColorRect
-	if bg != null:
-		bg.color = ApplePalette.BG
+	AppleStyle.apply_primary_button(_btn_new)
+	AppleStyle.apply_secondary_button(_btn_undo)
 
 func _resolve_sides() -> void:
 	match AppState.current_mode:
@@ -65,10 +89,10 @@ func _wire_buttons() -> void:
 func _wire_network() -> void:
 	NetworkHub.peer_connected.connect(func(_id: int) -> void: _refresh_ui())
 	NetworkHub.peer_disconnected.connect(func(_id: int) -> void: _refresh_ui())
-	NetworkHub.connection_failed.connect(func() -> void: _sub_label.text = "连接失败。")
+	NetworkHub.connection_failed.connect(func() -> void: _sub_label.text = "连接失败")
 	RoomManager.room_peer_left.connect(func(_id: int) -> void:
 		if not _game_over:
-			_sub_label.text = "对手已断开连接。"
+			_sub_label.text = "对手已断开连接"
 	)
 	RoomManager.room_error.connect(func(msg: String) -> void: _sub_label.text = msg)
 
@@ -133,9 +157,7 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 		"last_from": _board_view.last_move_from,
 		"last_to": _board_view.last_move_to,
 	})
-	# Get piece value before updating board
 	var anim_piece: int = _board[from.y][from.x]
-	# Animate before board update (so we know the piece)
 	_board_view.animate_move(from, to, anim_piece)
 	_board = XiangqiLogic.apply_on_clone(_board, from.x, from.y, to.x, to.y)
 	_board_view.set_last_move(from, to)
@@ -145,7 +167,6 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 	move_made.emit(from, to)
 	_check_game_over(mover)
 	_sync_board()
-	# Animate piece movement
 	_refresh_ui()
 	if broadcast and _is_lan():
 		_rpc_remote_move.rpc(from, to)
@@ -153,22 +174,19 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 		_trigger_ai()
 
 func _check_game_over(mover: int) -> void:
-	# Mover just moved; check if opponent is checkmated
 	if XiangqiLogic.is_checkmate(_board, _side_to_move):
 		_game_over = true
-		var winner: String = "Red" if mover == XiangqiLogic.RED else "Black"
-		_sub_label.text = "%s 将杀获胜。" % ("红方" if mover == XiangqiLogic.RED else "黑方")
+		_sub_label.text = "%s 将杀获胜" % ("红方" if mover == XiangqiLogic.RED else "黑方")
 		game_over.emit({"winner": mover, "reason": "checkmate"})
 		return
 	if XiangqiLogic.is_stalemate_no_moves(_board, _side_to_move):
 		if XiangqiLogic.is_in_check(_board, _side_to_move):
 			_game_over = true
-			var w2: String = "Red" if mover == XiangqiLogic.RED else "Black"
-			_sub_label.text = "%s 获胜。" % ("红方" if mover == XiangqiLogic.RED else "黑方")
+			_sub_label.text = "%s 获胜" % ("红方" if mover == XiangqiLogic.RED else "黑方")
 			game_over.emit({"winner": mover, "reason": "checkmate"})
 		else:
 			_game_over = true
-			_sub_label.text = "和棋 — 困毙。"
+			_sub_label.text = "和棋  ·  困毙"
 			game_over.emit({"winner": 0, "reason": "stalemate"})
 
 func _is_lan() -> bool:
@@ -185,7 +203,6 @@ func _trigger_ai() -> void:
 	_ai_thinking = true
 	_sync_board()
 	_refresh_ui()
-	# Defer to next frame so UI paints "AI 思考中…"
 	await get_tree().process_frame
 	var mv: Dictionary = XiangqiAI.best_move(_board, _side_to_move, 2)
 	_ai_thinking = false
@@ -199,7 +216,6 @@ func _on_undo() -> void:
 	if _history.is_empty() or _game_over:
 		return
 	if AppState.current_mode == AppState.Mode.AI:
-		# Undo full round (AI + player) if possible
 		var to_pop: int = 2 if _history.size() >= 2 else 1
 		for _i in range(to_pop):
 			if _history.is_empty():
@@ -222,6 +238,10 @@ func _refresh_ui() -> void:
 	if _game_over:
 		_status_label.text = "对局结束"
 		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
+		var sc: StyleBoxFlat = _status_card.get_theme_stylebox("panel") as StyleBoxFlat
+		if sc != null:
+			sc.border_color = ApplePalette.RED
+			sc.bg_color = Color("#1A1214")
 		_board_view.interactable = false
 		return
 	var side_name: String = "红方" if _side_to_move == XiangqiLogic.RED else "黑方"
@@ -229,38 +249,41 @@ func _refresh_ui() -> void:
 	if AppState.current_mode == AppState.Mode.AI:
 		if _ai_thinking:
 			_status_label.text = "AI 思考中…"
-			_sub_label.text = "黑方正在计算。"
+			_sub_label.text = "黑方正在计算"
 		elif my_turn:
 			_status_label.text = "轮到你走棋"
-			_sub_label.text = "你是红方  •  点击棋子，再点击高亮位置。"
+			_sub_label.text = "你是红方  ·  点击棋子，再点击鎏金落点"
 		else:
-			_status_label.text = "Opponent’s move"
-			_sub_label.text = "黑方走棋。"
+			_status_label.text = "对手回合"
+			_sub_label.text = "黑方走棋"
 	elif _is_lan():
-		var role: String = "主机 (红方)" if AppState.current_mode == AppState.Mode.LAN_HOST else "客户端 (黑方)"
+		var role: String = "主机 · 红方" if AppState.current_mode == AppState.Mode.LAN_HOST else "客机 · 黑方"
 		if my_turn:
-			_status_label.text = "Your move  •  %s" % side_name
-			_sub_label.text = "%s  •  %s" % [role, "局域网 — 你的回合。" if NetworkHub.is_connected_to_peer() else "等待对手连接…"]
+			_status_label.text = "你的回合  ·  %s" % side_name
+			_sub_label.text = "%s  ·  %s" % [role, "你的回合" if NetworkHub.is_connected_to_peer() else "等待对手连接…"]
 		else:
-			_status_label.text = "Opponent’s move  •  %s" % side_name
-			_sub_label.text = "%s  •  Waiting for opponent." % role
+			_status_label.text = "对手回合  ·  %s" % side_name
+			_sub_label.text = "%s  ·  等待对手落子" % role
 	else:
-		_status_label.text = "%s to move" % side_name
-		_sub_label.text = "Tap a piece, then a highlighted square."
+		_status_label.text = "%s 行棋" % side_name
+		_sub_label.text = "点击棋子，再点击高亮落点"
 	_status_label.add_theme_color_override("font_color", ApplePalette.LABEL)
+	var sc2: StyleBoxFlat = _status_card.get_theme_stylebox("panel") as StyleBoxFlat
+	if sc2 != null:
+		sc2.border_color = ApplePalette.HAIRLINE_GOLD
+		sc2.bg_color = Color("#111A26")
 	if XiangqiLogic.is_in_check(_board, _side_to_move):
-		_status_label.text += "  •  将军！"
+		_status_label.text += "  ·  将军！"
 		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
+		if sc2 != null:
+			sc2.border_color = ApplePalette.RED
+			sc2.bg_color = Color("#1A1214")
 	_board_view.interactable = not _game_over and not _ai_thinking and my_turn
-
-# --- LAN sync ---
 
 @rpc("any_peer", "call_local", "reliable")
 func _rpc_remote_move(from: Vector2i, to: Vector2i) -> void:
-	# Ignore echo on sender (call_local)
 	if multiplayer.get_remote_sender_id() == 0:
 		return
-	# Validate it is opponent's turn
 	var sender_side: int = XiangqiLogic.BLACK if _my_side == XiangqiLogic.RED else XiangqiLogic.RED
 	if _side_to_move != sender_side:
 		return
