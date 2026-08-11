@@ -86,32 +86,21 @@ jobs:
           echo "APK exported:"
           ls -la "build/android/${EXPORT_NAME}.apk"
 
-      - name: Verify APK Signature
+      - name: Zipalign APK
         run: |
-          echo "=== Verifying APK signature ==="
+          echo "=== Zipaligning APK ==="
           APK_PATH="build/android/${EXPORT_NAME}.apk"
-          jarsigner -verify "$APK_PATH"
-          if [ $? -eq 0 ]; then
-            echo "APK is already signed (by Godot export)"
-          else
-            echo "APK not signed, signing with debug keystore..."
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-              -keystore build/keystore/debug.keystore \
-              -storepass cardmaster \
-              "$APK_PATH" cardmaster
-            echo "APK signed successfully"
-          fi
           
-          # Zipalign
-          if [ -d "$ANDROID_HOME/build-tools" ]; then
-            BUILD_TOOLS_VER=$(ls "$ANDROID_HOME/build-tools/" | sort -V | tail -1)
-            ZIPALIGN="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VER/zipalign"
-            if [ -x "$ZIPALIGN" ]; then
-              echo "Zipaligning with build-tools $BUILD_TOOLS_VER..."
-              "$ZIPALIGN" -f -v 4 "$APK_PATH" "${APK_PATH%.apk}-aligned.apk"
-              mv -f "${APK_PATH%.apk}-aligned.apk" "$APK_PATH"
-              echo "Zipalign done"
-            fi
+          # Verify Godot built-in signature
+          jarsigner -verify "$APK_PATH" && echo "Godot built-in signature OK"
+          
+          # Zipalign only - do NOT re-sign
+          BUILD_TOOLS_DIR=$(ls -d "$ANDROID_HOME/build-tools"/*/ 2>/dev/null | sort -V | tail -1)
+          if [ -n "$BUILD_TOOLS_DIR" ] && [ -x "${BUILD_TOOLS_DIR}zipalign" ]; then
+            echo "Zipaligning with ${BUILD_TOOLS_DIR}..."
+            "${BUILD_TOOLS_DIR}zipalign" -f -v 4 "$APK_PATH" "${APK_PATH%.apk}-aligned.apk"
+            mv -f "${APK_PATH%.apk}-aligned.apk" "$APK_PATH"
+            echo "Zipalign done"
           fi
           
           echo "Final APK:"
