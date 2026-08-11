@@ -131,7 +131,7 @@ grow_vertical = 2
 
 [node name="XiangqiBoard" type="Control" parent="BoardWrap"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(560, 620)
+custom_minimum_size = Vector2(400, 440)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -172,7 +172,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
-text = "点击棋子，再点击鎏金高亮位置  ·  将军时状态栏呈赤色"
+text = "拖拽棋子或点击鎏金落点  ·  将军时状态栏呈赤色"
 autowrap_mode = 3
 
 [node name="BottomBadge" type="Panel" parent="BottomBar/BottomInner"]

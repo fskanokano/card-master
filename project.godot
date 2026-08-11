@@ -1,5 +1,5 @@
 ; Engine configuration file.
-; It''s best edited using the editor UI and not directly,
+; It's best edited using the editor UI and not directly,
 ; since the parameters that go here are not all obvious.
 ;
 ; Format:
@@ -14,7 +14,7 @@ name="CardMaster"
 run/main_scene="res://scenes/lobby/Lobby.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
-boot_splash/bg_color=Color(0.14, 0.14, 0.14, 1)
+boot_splash/bg_color=Color(0.04, 0.055, 0.078, 1)
 
 [autoload]
 
@@ -29,7 +29,14 @@ RoomManager="*res://autoload/RoomManager.gd"
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/resizable=true
+window/size/initial_position_type=2
+window/size/transparent=false
 window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=0
+window/per_table/handheld/orientation=0
+window/vsync/vsync_mode=1
+window/android/keep_screen_on=true
 
 [rendering]
 
@@ -38,7 +45,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc=true
 textures/vram_compression/import_etc2=true
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.12, 0.13, 0.15, 1)
+environment/defaults/default_clear_color=Color(0.039, 0.055, 0.078, 1)
 
 [input]
 
