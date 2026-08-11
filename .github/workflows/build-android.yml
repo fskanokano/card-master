@@ -1,0 +1,132 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      godot_version:
+        description: 'Godot version'
+        required: false
+        default: '4.7.1'
+  push:
+    branches: [ main, develop ]
+
+env:
+  GODOT_VERSION: ${{ github.event.inputs.godot_version || '4.7.1' }}
+  EXPORT_NAME: CardMaster
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    name: Export Android APK
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Godot
+        run: |
+          echo "=== Installing Godot ${GODOT_VERSION} ==="
+          wget -q "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q "Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          chmod +x "Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          echo "Godot version: $(godot --version)"
+
+      - name: Download Export Templates
+        run: |
+          echo "=== Downloading export templates ==="
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          wget -q "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -o "Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -d /tmp/export_templates
+          cp /tmp/export_templates/templates/* "$TEMPLATE_DIR/"
+          echo "Templates installed:"
+          ls "$TEMPLATE_DIR/" | head -10
+
+      - name: Generate Random Keystore
+        run: |
+          echo "=== Generating random keystore ==="
+          KEYSTORE_PASS=$(openssl rand -base64 12)
+          KEY_ALIAS="cardmaster_$(date +%s)_$(( RANDOM % 10000 ))"
+          
+          keytool -genkeypair \
+            -keystore /tmp/debug.keystore \
+            -alias "$KEY_ALIAS" \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "$KEYSTORE_PASS" \
+            -keypass "$KEYSTORE_PASS" \
+            -dname "CN=CardMaster, OU=Dev, O=CardMaster, L=City, S=State, C=US" \
+            -noprompt
+          
+          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+          echo "Keystore generated with alias: $KEY_ALIAS"
+
+      - name: Import Godot Project
+        run: |
+          echo "=== Importing Godot project ==="
+          godot --headless --path . --import 2>&1 || echo "Import warnings (non-fatal)"
+
+      - name: Export Android APK
+        run: |
+          echo "=== Exporting Android APK ==="
+          mkdir -p build/android
+          godot --headless --path . --export-release "Android" "build/android/${EXPORT_NAME}.apk"
+          if [ ! -f "build/android/${EXPORT_NAME}.apk" ]; then
+            echo "ERROR: APK not produced"
+            exit 1
+          fi
+          echo "APK exported:"
+          ls -la "build/android/${EXPORT_NAME}.apk"
+
+      - name: Sign APK
+        run: |
+          echo "=== Signing APK ==="
+          APK_PATH="build/android/${EXPORT_NAME}.apk"
+          
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore /tmp/debug.keystore \
+            -storepass "$KEYSTORE_PASS" \
+            "$APK_PATH" "$KEY_ALIAS"
+          
+          echo "APK signed successfully"
+          
+          # Zipalign
+          if [ -d "$ANDROID_HOME/build-tools" ]; then
+            BUILD_TOOLS_VER=$(ls "$ANDROID_HOME/build-tools/" | sort -V | tail -1)
+            ZIPALIGN="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VER/zipalign"
+            if [ -x "$ZIPALIGN" ]; then
+              echo "Zipaligning with build-tools $BUILD_TOOLS_VER..."
+              "$ZIPALIGN" -f -v 4 "$APK_PATH" "${APK_PATH%.apk}-aligned.apk"
+              mv -f "${APK_PATH%.apk}-aligned.apk" "$APK_PATH"
+              echo "Zipalign done"
+            fi
+          fi
+          
+          echo "Final APK:"
+          ls -la "$APK_PATH"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CardMaster-Android-${{ github.run_number }}
+          path: build/android/${EXPORT_NAME}.apk
+          retention-days: 30
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm -f /tmp/debug.keystore 2>/dev/null || true
+          echo "Keystore cleaned up for security"
