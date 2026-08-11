@@ -443,6 +443,66 @@ func _try_haptic(ms: int) -> void:
 			Input.vibrate_handheld(ms)
 
 # ── 绘制 ─────────────────────────────────────────────────
+func _draw_attack_motion(center: Vector2, typ: int, is_red: bool, alpha: float, sc: float, motion_t: float) -> void:
+	# 吃子专属出招层：攻击方向沿实际飞行方向。
+	var u: float = _cell * sc
+	var travel: Vector2 = (_anim_pos_to - _anim_pos_from).normalized()
+	if travel.length_squared() < 0.01:
+		travel = Vector2.RIGHT
+	var side := Vector2(-travel.y, travel.x)
+	var strike: float = sin(clamp((motion_t - 0.12) / 0.70, 0.0, 1.0) * PI)
+	var base_col: Color = ApplePalette.PIECE_RED if is_red else ApplePalette.PIECE_BLACK
+	var slash := Color(ApplePalette.GOLD_BRIGHT.r, ApplePalette.GOLD_BRIGHT.g, ApplePalette.GOLD_BRIGHT.b, 0.90 * alpha * strike)
+	var glow := Color(base_col.r, base_col.g, base_col.b, 0.60 * alpha * strike)
+	var width: float = max(1.4, u * 0.030)
+	match typ:
+		XiangqiLogic.HORSE:
+			# 马冲锋：三道速度线和前方马首光弧。
+			for i in range(3):
+				var back := center - travel * (u * (0.26 + i * 0.10)) + side * (u * (i - 1) * 0.07)
+				draw_line(back, back - travel * u * (0.16 + strike * 0.10), slash, width)
+			draw_arc(center + travel * u * 0.15, u * (0.16 + strike * 0.10), -0.9, 0.9, 18, glow, width)
+		XiangqiLogic.CHARIOT:
+			# 车撞击：车头楔形和碰撞金环。
+			var nose := center + travel * u * (0.20 + strike * 0.20)
+			draw_line(nose - side * u * 0.18, nose + travel * u * 0.12, slash, width * 1.4)
+			draw_line(nose + side * u * 0.18, nose + travel * u * 0.12, slash, width * 1.4)
+			draw_arc(nose + travel * u * 0.05, u * (0.08 + strike * 0.12), 0, TAU, 24, slash, width)
+		XiangqiLogic.CANNON:
+			# 炮击：炮口十字闪焰和后方烟迹。
+			var muzzle := center + travel * u * 0.24
+			var flash_len: float = u * (0.16 + strike * 0.16)
+			draw_line(muzzle - travel * flash_len, muzzle + travel * flash_len, slash, width * 1.8)
+			draw_line(muzzle - side * flash_len, muzzle + side * flash_len, slash, width * 1.4)
+			for i in range(3):
+				var smoke_pos := muzzle - travel * u * (0.12 + i * 0.07) + side * u * (i - 1) * 0.06
+				draw_circle(smoke_pos, u * (0.035 + strike * 0.02), Color(0.30, 0.25, 0.18, 0.22 * alpha * strike))
+		XiangqiLogic.ELEPHANT:
+			# 象突：两根象牙和沉重冲击纹。
+			var tusk_base := center + travel * u * 0.08
+			draw_line(tusk_base + side * u * 0.10, tusk_base + travel * u * (0.25 + strike * 0.16) + side * u * 0.04, slash, width)
+			draw_line(tusk_base - side * u * 0.10, tusk_base + travel * u * (0.25 + strike * 0.16) - side * u * 0.04, slash, width)
+			draw_arc(center + travel * u * 0.18, u * (0.14 + strike * 0.08), -1.2, 1.2, 16, glow, width)
+		XiangqiLogic.KING:
+			# 将帅爆发：冠顶向命中方向释放扇形光束。
+			var crown := center - travel * u * 0.08
+			for i in range(3):
+				var beam_start := crown + side * u * (i - 1) * 0.09
+				draw_line(beam_start, beam_start + travel * u * (0.22 + strike * 0.18), slash, width)
+			draw_circle(crown, u * (0.06 + strike * 0.06), slash)
+		XiangqiLogic.ADVISOR:
+			# 士仕挥剑：两段交错剑光。
+			var slash_center := center + travel * u * 0.10
+			draw_line(slash_center - side * u * 0.24 - travel * u * 0.12, slash_center + side * u * 0.24 + travel * u * 0.12, slash, width * 1.5)
+			draw_line(slash_center - side * u * 0.18 + travel * u * 0.04, slash_center + side * u * 0.18 + travel * u * 0.20, glow, width)
+		XiangqiLogic.PAWN:
+			# 兵卒刺枪：枪尖向前伸出并在命中处爆亮。
+			var spear_base := center - travel * u * 0.10
+			var spear_tip := center + travel * u * (0.24 + strike * 0.18)
+			draw_line(spear_base, spear_tip, slash, width * 1.3)
+			draw_line(spear_tip - side * u * 0.08, spear_tip + side * u * 0.08, slash, width)
+			draw_circle(spear_tip, u * (0.025 + strike * 0.045), slash)
+
 func _draw() -> void:
 	# ── 天天象棋暖木棋院质感 ─────────────────────────────────
 	var outer := Rect2(Vector2.ZERO, size)
@@ -579,7 +639,7 @@ func _draw() -> void:
 		var lift_for_shadow: float = sin(t * PI) * lift_h
 		var ground: Vector2 = _anim_pos_from.lerp(_anim_pos_to, t)
 		_draw_piece_shadow(ground + Vector2(0, 3 + lift_for_shadow * 0.18), shadow_alpha)
-		_draw_piece(fly, _anim_piece, font, 1.0, scale, lift_for_shadow)
+		_draw_piece(fly, _anim_piece, font, 1.0, scale, lift_for_shadow, t)
 
 	# 拖拽棋 — 手指上方悬浮，放大+投影+轨迹虚影
 	if _is_dragging and _drag_from.x != -1:
@@ -627,7 +687,7 @@ func _draw_corner_marks(bx: int, by: int) -> void:
 		draw_line(Vector2(px, py), Vector2(px + dx * s, py), col, 1.2)
 		draw_line(Vector2(px, py), Vector2(px, py + dy * s), col, 1.2)
 
-func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale: float = 1.0, lift: float = 0.0) -> void:
+func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale: float = 1.0, lift: float = 0.0, motion_t: float = 0.0) -> void:
 	var is_red: bool = p > 0
 	var r: float = _cell * 0.46 * scale
 	var r_in: float = _cell * 0.39 * scale
@@ -648,8 +708,8 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 	draw_arc(center, r_in, 0, TAU, 32, gold, 1.0 * scale)
 	draw_arc(center, r * 0.78, 0, TAU, 32, Color("#000000", 0.05 * alpha), 1.0 * scale)
 	draw_circle(center + Vector2(-_cell * 0.10, -_cell * 0.12), _cell * 0.10, Color("#FFFFFF", 0.09 * alpha))
-	# 独立兵种徽记：中文棋字保留识别度，徽记提供角色轮廓和侧颜色辨识。
-	_draw_piece_emblem(center, XiangqiLogic.piece_type(p), is_red, alpha, scale)
+	# 独立兵种 2.5D 角色：中文棋字保留识别度，角色轮廓提供战斗辨识度。
+	_draw_piece_character_3d(center, XiangqiLogic.piece_type(p), is_red, alpha, scale, motion_t)
 	var label: String = _piece_label(p)
 	var fs: int = int(_cell * 0.42 * scale)
 	if fs < 13:
@@ -660,6 +720,231 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 	var base: Vector2 = center - Vector2(ts.x / 2, -ts.y / 3.0)
 	draw_string(font, base + Vector2(0, 1 * scale), label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs, Color("#000000", 0.16 * alpha))
 	draw_string(font, base, label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs, disc)
+
+func _draw_3d_poly(points: PackedVector2Array, depth: float, top: Color, side: Color, outline: Color, width: float) -> void:
+	if points.size() < 3:
+		return
+	var lower := PackedVector2Array()
+	for point in points:
+		lower.append(point + Vector2(0, depth))
+	var lower_line := lower.duplicate()
+	lower_line.append(lower[0])
+	draw_colored_polygon(lower, side)
+	draw_polyline(lower_line, outline, width)
+	var top_line := points.duplicate()
+	top_line.append(points[0])
+	draw_colored_polygon(points, top)
+	draw_polyline(top_line, outline, width)
+
+func _draw_piece_character_3d(center: Vector2, typ: int, is_red: bool, alpha: float, sc: float, motion_t: float = 0.0) -> void:
+	var u: float = _cell * sc
+	var base_col: Color = ApplePalette.PIECE_RED if is_red else ApplePalette.PIECE_BLACK
+	var top_col := Color(base_col.r * 0.72 + 0.28, base_col.g * 0.72 + 0.28, base_col.b * 0.72 + 0.28, 0.86 * alpha)
+	var side_col := Color(base_col.r * 0.42, base_col.g * 0.42, base_col.b * 0.42, 0.90 * alpha)
+	var outline := Color("#24180F", 0.84 * alpha)
+	var gold := Color(ApplePalette.GOLD_BRIGHT.r, ApplePalette.GOLD_BRIGHT.g, ApplePalette.GOLD_BRIGHT.b, 0.80 * alpha)
+	var width: float = max(1.2, u * 0.028)
+	var depth: float = u * 0.075
+	match typ:
+		XiangqiLogic.KING:
+			# 将/帅：披甲躯干 + 王冠，顶部高光和底部厚度形成小型雕像感。
+			var torso := PackedVector2Array([
+				center + Vector2(-u * 0.22, u * 0.27),
+				center + Vector2(-u * 0.18, -u * 0.05),
+				center + Vector2(-u * 0.12, -u * 0.18),
+				center + Vector2(u * 0.12, -u * 0.18),
+				center + Vector2(u * 0.18, -u * 0.05),
+				center + Vector2(u * 0.22, u * 0.27),
+			])
+			_draw_3d_poly(torso, depth, top_col, side_col, outline, width)
+			var crown := PackedVector2Array([
+				center + Vector2(-u * 0.17, -u * 0.12),
+				center + Vector2(-u * 0.16, -u * 0.31),
+				center + Vector2(-u * 0.06, -u * 0.23),
+				center + Vector2(0, -u * 0.34),
+				center + Vector2(u * 0.07, -u * 0.23),
+				center + Vector2(u * 0.17, -u * 0.31),
+				center + Vector2(u * 0.16, -u * 0.12),
+			])
+			_draw_3d_poly(crown, depth * 0.6, gold, side_col, outline, width)
+			draw_line(center + Vector2(-u * 0.15, u * 0.08), center + Vector2(u * 0.15, u * 0.08), gold, width)
+		XiangqiLogic.ADVISOR:
+			# 士/仕：肩甲、护卫披风和向上出鞘的剑。
+			var cape := PackedVector2Array([
+				center + Vector2(-u * 0.23, u * 0.27),
+				center + Vector2(-u * 0.16, -u * 0.08),
+				center + Vector2(0, -u * 0.20),
+				center + Vector2(u * 0.16, -u * 0.08),
+				center + Vector2(u * 0.23, u * 0.27),
+			])
+			_draw_3d_poly(cape, depth, top_col, side_col, outline, width)
+			draw_line(center + Vector2(0, -u * 0.29), center + Vector2(0, u * 0.13), gold, width * 1.2)
+			draw_line(center + Vector2(-u * 0.13, -u * 0.08), center + Vector2(u * 0.13, -u * 0.08), gold, width)
+			draw_circle(center + Vector2(0, -u * 0.29), u * 0.035, gold)
+		XiangqiLogic.ELEPHANT:
+			# 象/相：大耳、额头、象牙和下垂鼻梁。
+			var head := PackedVector2Array([
+				center + Vector2(-u * 0.20, u * 0.22),
+				center + Vector2(-u * 0.19, -u * 0.06),
+				center + Vector2(-u * 0.12, -u * 0.22),
+				center + Vector2(u * 0.09, -u * 0.23),
+				center + Vector2(u * 0.20, -u * 0.05),
+				center + Vector2(u * 0.18, u * 0.22),
+			])
+			_draw_3d_poly(head, depth, top_col, side_col, outline, width)
+			draw_arc(center + Vector2(-u * 0.15, -u * 0.04), u * 0.17, 0.6, 5.3, 20, gold, width)
+			draw_line(center + Vector2(u * 0.08, -u * 0.02), center + Vector2(u * 0.14, u * 0.25), gold, width)
+			draw_line(center + Vector2(u * 0.14, u * 0.25), center + Vector2(u * 0.04, u * 0.29), gold, width)
+			draw_circle(center + Vector2(u * 0.08, -u * 0.10), u * 0.026, outline)
+		XiangqiLogic.HORSE:
+			# 马：独立烈马头、立耳、鼻梁、鬃毛与高光眼睛。
+			var horse := PackedVector2Array([
+				center + Vector2(-u * 0.20, u * 0.28),
+				center + Vector2(-u * 0.18, -u * 0.05),
+				center + Vector2(-u * 0.10, -u * 0.27),
+				center + Vector2(-u * 0.02, -u * 0.15),
+				center + Vector2(u * 0.07, -u * 0.32),
+				center + Vector2(u * 0.14, -u * 0.12),
+				center + Vector2(u * 0.24, u * 0.04),
+				center + Vector2(u * 0.16, u * 0.18),
+				center + Vector2(u * 0.08, u * 0.28),
+			])
+			_draw_3d_poly(horse, depth, top_col, side_col, outline, width)
+			draw_line(center + Vector2(-u * 0.12, -u * 0.23), center + Vector2(-u * 0.29, -u * 0.05), gold, width)
+			draw_line(center + Vector2(-u * 0.04, -u * 0.19), center + Vector2(-u * 0.15, u * 0.21), side_col, width * 1.2)
+			draw_circle(center + Vector2(u * 0.10, -u * 0.08), u * 0.035, gold)
+			draw_circle(center + Vector2(u * 0.10, -u * 0.08), u * 0.014, outline)
+		XiangqiLogic.CHARIOT:
+			# 車：战车城垛、车厢、双轮与顶部旗片。
+			var tower := PackedVector2Array([
+				center + Vector2(-u * 0.23, u * 0.23),
+				center + Vector2(-u * 0.22, -u * 0.14),
+				center + Vector2(-u * 0.13, -u * 0.14),
+				center + Vector2(-u * 0.13, -u * 0.25),
+				center + Vector2(-u * 0.04, -u * 0.25),
+				center + Vector2(-u * 0.04, -u * 0.14),
+				center + Vector2(u * 0.06, -u * 0.14),
+				center + Vector2(u * 0.06, -u * 0.25),
+				center + Vector2(u * 0.16, -u * 0.25),
+				center + Vector2(u * 0.17, u * 0.23),
+			])
+			_draw_3d_poly(tower, depth, top_col, side_col, outline, width)
+			draw_circle(center + Vector2(-u * 0.15, u * 0.22), u * 0.10, side_col)
+			draw_circle(center + Vector2(-u * 0.15, u * 0.22), u * 0.07, gold, false, width)
+			draw_circle(center + Vector2(u * 0.15, u * 0.22), u * 0.10, side_col)
+			draw_circle(center + Vector2(u * 0.15, u * 0.22), u * 0.07, gold, false, width)
+			draw_line(center + Vector2(0, -u * 0.25), center + Vector2(0, -u * 0.36), gold, width)
+		XiangqiLogic.CANNON:
+			# 炮/砲：厚炮架、长炮管、炮口环与金属闪光。
+			var carriage := PackedVector2Array([
+				center + Vector2(-u * 0.24, u * 0.23),
+				center + Vector2(-u * 0.17, -u * 0.03),
+				center + Vector2(u * 0.16, -u * 0.03),
+				center + Vector2(u * 0.24, u * 0.23),
+			])
+			_draw_3d_poly(carriage, depth, top_col, side_col, outline, width)
+			draw_line(center + Vector2(-u * 0.18, -u * 0.02), center + Vector2(u * 0.18, -u * 0.23), gold, width * 2.0)
+			draw_circle(center + Vector2(u * 0.20, -u * 0.25), u * 0.075, side_col)
+			draw_arc(center + Vector2(u * 0.20, -u * 0.25), u * 0.075, 0, TAU, 20, gold, width)
+			draw_line(center + Vector2(-u * 0.12, u * 0.12), center + Vector2(u * 0.12, u * 0.12), gold, width)
+		XiangqiLogic.PAWN:
+			# 兵/卒：小型战士、头盔、矛和肩甲。
+			var soldier := PackedVector2Array([
+				center + Vector2(-u * 0.20, u * 0.27),
+				center + Vector2(-u * 0.16, -u * 0.03),
+				center + Vector2(-u * 0.12, -u * 0.16),
+				center + Vector2(u * 0.12, -u * 0.16),
+				center + Vector2(u * 0.16, -u * 0.03),
+				center + Vector2(u * 0.20, u * 0.27),
+			])
+			_draw_3d_poly(soldier, depth, top_col, side_col, outline, width)
+			draw_arc(center + Vector2(0, -u * 0.11), u * 0.19, PI, TAU, 20, gold, width)
+			draw_line(center + Vector2(0, -u * 0.31), center + Vector2(0, u * 0.16), gold, width)
+			draw_line(center + Vector2(-u * 0.17, u * 0.12), center + Vector2(u * 0.17, u * 0.12), gold, width)
+
+	if motion_t > 0.001:
+		_draw_piece_motion(center, typ, is_red, alpha, sc, motion_t)
+		if _anim_is_capture:
+			_draw_attack_motion(center, typ, is_red, alpha, sc, motion_t)
+
+func _draw_piece_motion(center: Vector2, typ: int, is_red: bool, alpha: float, sc: float, motion_t: float) -> void:
+	# 只在飞行阶段绘制动作层；静止和拖拽棋子保持干净的角色立姿。
+	var u: float = _cell * sc
+	var phase: float = motion_t * TAU * 2.2
+	var beat: float = sin(phase)
+	var beat_alt: float = sin(phase + PI)
+	var side_col: Color = ApplePalette.PIECE_RED if is_red else ApplePalette.PIECE_BLACK
+	var action_col := Color(ApplePalette.GOLD_BRIGHT.r, ApplePalette.GOLD_BRIGHT.g, ApplePalette.GOLD_BRIGHT.b, 0.72 * alpha)
+	var action_dark := Color(side_col.r, side_col.g, side_col.b, 0.58 * alpha)
+	var width: float = max(1.1, u * 0.022)
+	match typ:
+		XiangqiLogic.HORSE:
+			# 奔马：四肢交替摆动、鬃毛后掠、脚下短促残影。
+			var leg_a := center + Vector2(-u * 0.13, u * 0.20)
+			var leg_b := center + Vector2(u * 0.12, u * 0.20)
+			draw_line(leg_a, leg_a + Vector2(-u * 0.13, u * (0.13 + beat * 0.07)), action_dark, width)
+			draw_line(leg_b, leg_b + Vector2(u * 0.13, u * (0.13 + beat_alt * 0.07)), action_dark, width)
+			draw_line(leg_a + Vector2(u * 0.04, 0), leg_a + Vector2(u * 0.17, u * (0.11 + beat_alt * 0.07)), action_dark, width)
+			draw_line(leg_b + Vector2(-u * 0.04, 0), leg_b + Vector2(-u * 0.17, u * (0.11 + beat * 0.07)), action_dark, width)
+			for i in range(3):
+				var mane_y: float = -u * (0.20 - i * 0.07)
+				draw_line(center + Vector2(-u * 0.10, mane_y), center + Vector2(-u * (0.26 + 0.04 * sin(phase + i)), mane_y + u * 0.05), action_col, width)
+			draw_line(center + Vector2(-u * 0.24, u * 0.34), center + Vector2(-u * (0.36 + 0.05 * sin(phase)), u * 0.34), action_col, width)
+		XiangqiLogic.CHARIOT:
+			# 战车：车轮转动，轮辐角度随移动进度连续旋转。
+			var spin: float = motion_t * TAU * 3.0
+			for wheel_x in [-u * 0.15, u * 0.15]:
+				var wc := center + Vector2(wheel_x, u * 0.22)
+				for spoke in range(2):
+					var angle: float = spin + spoke * PI * 0.5
+					var dir := Vector2(cos(angle), sin(angle))
+					draw_line(wc - dir * u * 0.065, wc + dir * u * 0.065, action_col, width)
+				draw_circle(wc, u * 0.018, action_col)
+		XiangqiLogic.CANNON:
+			# 炮：移动中炮架颠簸，炮口出现后坐力圆环与短烟迹。
+			var recoil: float = max(0.0, sin(motion_t * PI * 3.0)) * u * 0.09
+			var muzzle := center + Vector2(u * 0.20 - recoil, -u * 0.25)
+			draw_arc(muzzle, u * (0.08 + recoil / max(u, 1.0)), 0, TAU, 20, action_col, width)
+			draw_line(muzzle + Vector2(u * 0.02, 0), muzzle + Vector2(u * (0.14 + recoil / max(u, 1.0)), -u * 0.03), Color(action_col.r, action_col.g, action_col.b, 0.42), width)
+			for i in range(3):
+				var smoke := muzzle + Vector2(u * (0.14 + i * 0.06), -u * (0.04 + i * 0.06) + beat * u * 0.025)
+				draw_circle(smoke, u * (0.025 + i * 0.009), Color(0.42, 0.38, 0.30, 0.20 * alpha))
+		XiangqiLogic.ELEPHANT:
+			# 象：沉重踏步、耳朵摆动、鼻梁左右摆动。
+			var sway: float = beat * u * 0.055
+			draw_arc(center + Vector2(sway - u * 0.15, -u * 0.04), u * 0.18, 0.7, 5.4, 18, action_col, width)
+			draw_line(center + Vector2(u * 0.10, u * 0.02), center + Vector2(u * 0.15 + sway, u * 0.25), action_dark, width)
+			draw_line(center + Vector2(u * 0.15 + sway, u * 0.25), center + Vector2(u * 0.04 + sway, u * 0.29), action_col, width)
+			draw_line(center + Vector2(-u * 0.18, u * 0.28), center + Vector2(-u * 0.24, u * 0.34 + beat_alt * u * 0.03), action_dark, width)
+		XiangqiLogic.KING:
+			# 将/帅：王旗飘动，冠顶在移动中闪耀。
+			var flag_wave: float = beat * u * 0.05
+			draw_line(center + Vector2(0, -u * 0.30), center + Vector2(0, -u * 0.48), action_dark, width)
+			var flag := PackedVector2Array([
+				center + Vector2(0, -u * 0.47),
+				center + Vector2(u * 0.20 + flag_wave, -u * 0.43),
+				center + Vector2(u * 0.12 + flag_wave, -u * 0.33),
+				center + Vector2(0, -u * 0.36),
+			])
+			draw_colored_polygon(flag, action_col)
+			draw_circle(center + Vector2(0, -u * 0.34), u * (0.035 + max(0, beat) * 0.018), action_col)
+		XiangqiLogic.ADVISOR:
+			# 士/仕：护卫步伐和剑锋斜掠，形成短暂光轨。
+			var step: float = beat * u * 0.04
+			draw_line(center + Vector2(-u * 0.13, u * 0.23), center + Vector2(-u * 0.20 + step, u * 0.33), action_dark, width)
+			draw_line(center + Vector2(u * 0.13, u * 0.23), center + Vector2(u * 0.20 - step, u * 0.33), action_dark, width)
+			var sword_start := center + Vector2(-u * 0.14, -u * 0.28)
+			var sword_end := center + Vector2(u * 0.19 + beat * u * 0.08, -u * 0.42)
+			draw_line(sword_start, sword_end, action_col, width * 1.4)
+			draw_line(sword_end, sword_end + Vector2(-u * 0.10, u * 0.03), Color(action_col.r, action_col.g, action_col.b, 0.28), width)
+		XiangqiLogic.PAWN:
+			# 兵/卒：小战士交替踏步，脚下扬起两粒尘光。
+			var step_a := center + Vector2(-u * 0.10, u * 0.24)
+			var step_b := center + Vector2(u * 0.10, u * 0.24)
+			draw_line(step_a, step_a + Vector2(-u * 0.08, u * (0.12 + beat * 0.06)), action_dark, width)
+			draw_line(step_b, step_b + Vector2(u * 0.08, u * (0.12 + beat_alt * 0.06)), action_dark, width)
+			draw_circle(center + Vector2(-u * 0.23 + beat * u * 0.04, u * 0.34), u * 0.025, Color(action_col.r, action_col.g, action_col.b, 0.45))
+			draw_circle(center + Vector2(u * 0.23 + beat_alt * u * 0.04, u * 0.34), u * 0.020, Color(action_col.r, action_col.g, action_col.b, 0.35))
 
 func _draw_piece_emblem(center: Vector2, typ: int, is_red: bool, alpha: float, sc: float) -> void:
 	var u: float = _cell * sc
