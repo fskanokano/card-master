@@ -53,26 +53,21 @@ jobs:
           echo "Templates installed:"
           ls "$TEMPLATE_DIR/" | head -10
 
-      - name: Generate Random Keystore
+      - name: Generate Keystore
         run: |
-          echo "=== Generating random keystore ==="
-          KEYSTORE_PASS=$(openssl rand -base64 12)
-          KEY_ALIAS="cardmaster_$(date +%s)_$(( RANDOM % 10000 ))"
-          
+          echo "=== Generating keystore ==="
+          mkdir -p build/keystore
           keytool -genkeypair \
-            -keystore /tmp/debug.keystore \
-            -alias "$KEY_ALIAS" \
+            -keystore build/keystore/debug.keystore \
+            -alias cardmaster \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass "$KEYSTORE_PASS" \
-            -keypass "$KEYSTORE_PASS" \
+            -storepass cardmaster \
+            -keypass cardmaster \
             -dname "CN=CardMaster, OU=Dev, O=CardMaster, L=City, S=State, C=US" \
             -noprompt
-          
-          echo "KEYSTORE_PASS=$KEYSTORE_PASS" >> $GITHUB_ENV
-          echo "KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
-          echo "Keystore generated with alias: $KEY_ALIAS"
+          echo "Keystore generated at build/keystore/debug.keystore"
 
       - name: Import Godot Project
         run: |
@@ -91,17 +86,21 @@ jobs:
           echo "APK exported:"
           ls -la "build/android/${EXPORT_NAME}.apk"
 
-      - name: Sign APK
+      - name: Verify APK Signature
         run: |
-          echo "=== Signing APK ==="
+          echo "=== Verifying APK signature ==="
           APK_PATH="build/android/${EXPORT_NAME}.apk"
-          
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-            -keystore /tmp/debug.keystore \
-            -storepass "$KEYSTORE_PASS" \
-            "$APK_PATH" "$KEY_ALIAS"
-          
-          echo "APK signed successfully"
+          jarsigner -verify "$APK_PATH"
+          if [ $? -eq 0 ]; then
+            echo "APK is already signed (by Godot export)"
+          else
+            echo "APK not signed, signing with debug keystore..."
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+              -keystore build/keystore/debug.keystore \
+              -storepass cardmaster \
+              "$APK_PATH" cardmaster
+            echo "APK signed successfully"
+          fi
           
           # Zipalign
           if [ -d "$ANDROID_HOME/build-tools" ]; then
@@ -128,5 +127,5 @@ jobs:
       - name: Clean up
         if: always()
         run: |
-          rm -f /tmp/debug.keystore 2>/dev/null || true
+          rm -f build/keystore/debug.keystore 2>/dev/null || true
           echo "Keystore cleaned up for security"
