@@ -24,6 +24,7 @@ func _ready() -> void:
 	game_id = "xiangqi"
 	_apply_enterprise_chrome()
 	_apply_immersive_insets()
+	_fit_board_to_stage()
 	_resolve_sides()
 	new_game()
 	_wire_board()
@@ -48,8 +49,18 @@ func _animate_enter() -> void:
 
 func _on_viewport_resized() -> void:
 	_apply_immersive_insets()
+	_fit_board_to_stage()
 	if _board_view != null:
 		_board_view._update_layout()
+
+func _fit_board_to_stage() -> void:
+	# 强制棋盘控件跟随对局舞台，不让 custom_minimum_size 把它缩成桌面端小卡片。
+	var stage: Control = get_node_or_null("BoardWrap") as Control
+	if stage == null or _board_view == null or stage.size.x <= 0 or stage.size.y <= 0:
+		return
+	_board_view.position = Vector2.ZERO
+	_board_view.size = stage.size
+	_board_view.custom_minimum_size = Vector2.ZERO
 
 func _apply_immersive_insets() -> void:
 	var safe := DisplayServer.get_display_safe_area()

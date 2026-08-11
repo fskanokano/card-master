@@ -91,8 +91,8 @@ func _update_layout() -> void:
 				avail = Vector2(360, 620)
 	# 手机端：几乎吃满宽度，只留 10px 边距
 	var is_mobile: bool = OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"] or avail.x < 520
-	var h_margin: float = 8.0 if is_mobile else 14.0
-	var v_margin: float = 8.0 if is_mobile else 14.0
+	var h_margin: float = 4.0 if is_mobile else 14.0
+	var v_margin: float = 6.0 if is_mobile else 14.0
 	var max_w: float = max(280, avail.x - _frame_thick * 2 - _board_pad * 2 - h_margin * 2)
 	var max_h: float = max(360, avail.y - _frame_thick * 2 - _board_pad * 2 - v_margin * 2)
 	var cell_by_w: float = max_w / 8.0
@@ -100,7 +100,8 @@ func _update_layout() -> void:
 	_cell = min(cell_by_w, cell_by_h)
 	# 手机允许更大棋子，桌面也适当放大
 	if is_mobile:
-		_cell = clamp(_cell, 36.0, 84.0)
+		# 手机棋盘优先按宽度放大，避免被桌面端的保守上限压缩
+		_cell = clamp(_cell, 42.0, 110.0)
 	else:
 		_cell = clamp(_cell, 42.0, 72.0)
 	var board_w: float = 8 * _cell

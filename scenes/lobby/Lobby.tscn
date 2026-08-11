@@ -180,15 +180,21 @@ theme_override_constants/separation = 20
 alignment = 0
 
 [node name="HeroCard" type="Panel" parent="MainScroll/CenterWrap/Content"]
-custom_minimum_size = Vector2(0, 0)
+custom_minimum_size = Vector2(0, 520)
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="HeroInner" type="VBoxContainer" parent="MainScroll/CenterWrap/Content/HeroCard"]
 layout_mode = 1
 anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 18
@@ -364,6 +370,7 @@ text = "点击卡片选取"
 [node name="GameGrid" type="GridContainer" parent="MainScroll/CenterWrap/Content"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 columns = 1
 theme_override_constants/h_separation = 14
 theme_override_constants/v_separation = 14

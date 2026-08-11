@@ -110,6 +110,29 @@ func _update_responsive() -> void:
 	# 网格：手机始终 1 列，卡片全宽超大
 	if _grid != null:
 		_grid.columns = 1 if is_mobile else (2 if is_tablet else 1)
+	# 手机大厅只保留当前可玩的象棋，避免三个入口挤在首屏造成视觉重叠
+	var hero_card: Panel = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard") as Panel
+	var hero_right: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight") as Control
+	var section_modes: Control = get_node_or_null("MainScroll/CenterWrap/Content/SectionModes") as Control
+	var modes_card: Control = get_node_or_null("MainScroll/CenterWrap/Content/ModesCard") as Control
+	if is_mobile:
+		if hero_card != null:
+			hero_card.custom_minimum_size.y = 520
+		if hero_right != null:
+			hero_right.visible = false
+		if section_modes != null:
+			section_modes.visible = false
+		if modes_card != null:
+			modes_card.visible = false
+	else:
+		if hero_card != null:
+			hero_card.custom_minimum_size.y = 400
+		if hero_right != null:
+			hero_right.visible = true
+		if section_modes != null:
+			section_modes.visible = true
+		if modes_card != null:
+			modes_card.visible = true
 	# 标题：手机端更大
 	var title: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitle") as Label
 	if title != null:
@@ -280,6 +303,10 @@ func _draw_hero_board_preview() -> void:
 	preview.set_anchors_preset(Control.PRESET_FULL_RECT)
 	host.add_child(preview)
 
+func _is_mobile_view() -> bool:
+	var vp: Vector2 = get_viewport_rect().size
+	return vp.x < 780 or OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]
+
 func _build_grid() -> void:
 	for c in _grid.get_children():
 		c.queue_free()
@@ -298,6 +325,8 @@ func _build_grid() -> void:
 			return av_a
 		return str(a.get("name", "")) < str(b.get("name", "")))
 	for g in games:
+		if _is_mobile_view() and g.get("status", "") != "available":
+			continue
 		var id: String = g.get("id", "")
 		var card := _make_game_card(g)
 		_grid.add_child(card)
@@ -310,8 +339,11 @@ func _make_game_card(g: Dictionary) -> Control:
 	var card := Panel.new()
 	var vp: Vector2 = get_viewport_rect().size
 	var is_mobile: bool = vp.x < 780 or OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]
-	var card_h: float = 220 if is_mobile else 240
+	var card_h: float = 300 if is_mobile else 280
 	card.custom_minimum_size = Vector2(0, card_h)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	card.clip_contents = true
 	card.mouse_filter = Control.MOUSE_FILTER_STOP if available else Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	if available and id == _selected_id:
@@ -331,7 +363,7 @@ func _make_game_card(g: Dictionary) -> Control:
 	root_v.add_theme_constant_override("separation", 0)
 	card.add_child(root_v)
 	var cover := Panel.new()
-	cover.custom_minimum_size = Vector2(0, 112 if is_mobile else 128)
+	cover.custom_minimum_size = Vector2(0, 144 if is_mobile else 136)
 	cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var cover_sb := StyleBoxFlat.new()
 	match id:
@@ -394,14 +426,14 @@ func _make_game_card(g: Dictionary) -> Control:
 	cover_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	cover_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	cover_title.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cover_title.offset_left = 16; cover_title.offset_top = 46
+	cover_title.offset_left = 18; cover_title.offset_top = 58
 	cover_inner.add_child(cover_title)
 	var cover_sub := Label.new()
 	cover_sub.text = _cover_sub(id)
 	cover_sub.add_theme_font_size_override("font_size", 12)
 	cover_sub.add_theme_color_override("font_color", Color("#9AA3B2"))
 	cover_sub.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cover_sub.offset_left = 16; cover_sub.offset_top = 82
+	cover_sub.offset_left = 18; cover_sub.offset_top = 100
 	cover_inner.add_child(cover_sub)
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 6)
@@ -417,12 +449,12 @@ func _make_game_card(g: Dictionary) -> Control:
 	margin.add_child(body)
 	var title := Label.new()
 	title.text = g.get("name", id)
-	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_font_size_override("font_size", 21 if is_mobile else 19)
 	title.add_theme_color_override("font_color", ApplePalette.LABEL if available else ApplePalette.LABEL_DIM)
 	body.add_child(title)
 	var desc := Label.new()
 	desc.text = _game_desc(id, available)
-	desc.add_theme_font_size_override("font_size", 13)
+	desc.add_theme_font_size_override("font_size", 15 if is_mobile else 13)
 	desc.add_theme_color_override("font_color", ApplePalette.LABEL_SECONDARY if available else ApplePalette.LABEL_DIM)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	body.add_child(desc)
@@ -437,7 +469,7 @@ func _make_game_card(g: Dictionary) -> Control:
 	meta.add_child(dot)
 	var meta_lbl := Label.new()
 	meta_lbl.text = "2 玩家  ·  策略" if available else "敬请期待  ·  策略"
-	meta_lbl.add_theme_font_size_override("font_size", 12)
+	meta_lbl.add_theme_font_size_override("font_size", 14 if is_mobile else 12)
 	meta_lbl.add_theme_color_override("font_color", ApplePalette.LABEL_TERTIARY)
 	meta.add_child(meta_lbl)
 	if available:
@@ -558,6 +590,8 @@ func _build_grid_no_anim(sel: String) -> void:
 			return av_a
 		return str(a.get("name", "")) < str(b.get("name", "")))
 	for g in games:
+		if _is_mobile_view() and g.get("status", "") != "available":
+			continue
 		var id2: String = g.get("id", "")
 		var card2 := _make_game_card(g)
 		_grid.add_child(card2)
