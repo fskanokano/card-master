@@ -133,6 +133,10 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 		"last_from": _board_view.last_move_from,
 		"last_to": _board_view.last_move_to,
 	})
+	# Get piece value before updating board
+	var anim_piece: int = _board[from.y][from.x]
+	# Animate before board update (so we know the piece)
+	_board_view.animate_move(from, to, anim_piece)
 	_board = XiangqiLogic.apply_on_clone(_board, from.x, from.y, to.x, to.y)
 	_board_view.set_last_move(from, to)
 	var mover: int = _side_to_move
@@ -140,8 +144,8 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 	_selected = Vector2i(-1, -1)
 	move_made.emit(from, to)
 	_check_game_over(mover)
+	_sync_board()
 	# Animate piece movement
-	_board_view.animate_move(from, to)
 	_refresh_ui()
 	if broadcast and _is_lan():
 		_rpc_remote_move.rpc(from, to)
