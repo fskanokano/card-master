@@ -32,14 +32,14 @@ alignment = 1
 mouse_filter = 2
 
 [node name="Scroll" type="ScrollContainer" parent="Center"]
-custom_minimum_size = Vector2(720, 1)
+custom_minimum_size = Vector2(480, 1)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Content" type="VBoxContainer" parent="Center/Scroll"]
-custom_minimum_size = Vector2(720, 0)
+custom_minimum_size = Vector2(480, 0)
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 14
@@ -62,14 +62,14 @@ alignment = 1
 layout_mode = 2
 theme_override_font_sizes/font_size = 34
 theme_override_colors/font_color = Color(0, 0, 0, 1)
-text = "CardMaster"
+text = "卡牌大师"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="Center/Scroll/Content/HeaderCard/HeaderInner"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "Game Lobby  •  Pick a game, then choose how to play"
+text = "游戏大厅  •  选择游戏，然后选择玩法"
 horizontal_alignment = 1
 
 [node name="NameRow" type="HBoxContainer" parent="Center/Scroll/Content"]
@@ -82,20 +82,20 @@ custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "YOUR NAME"
+text = "你的名字"
 
 [node name="NameInput" type="LineEdit" parent="Center/Scroll/Content/NameRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(200, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "Player"
+placeholder_text = "玩家"
 
 [node name="GamesLabel" type="Label" parent="Center/Scroll/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "GAMES"
+text = "游戏"
 
 [node name="GameGrid" type="GridContainer" parent="Center/Scroll/Content"]
 unique_name_in_owner = true
@@ -107,7 +107,7 @@ alignment = 1
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "PLAY MODE"
+text = "玩法模式"
 
 [node name="ModesCard" type="Panel" parent="Center/Scroll/Content"]
 layout_mode = 2
@@ -128,28 +128,28 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Play vs AI"
+text = "人机对战"
 
 [node name="BtnCreateRoom" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Create Room"
+text = "创建房间"
 
 [node name="BtnBrowseRooms" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Browse Rooms"
+text = "浏览房间"
 
 [node name="BtnOnline" type="Button" parent="Center/Scroll/Content/ModesCard/ModeRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Online"
+text = "在线对战"
 
 [node name="LanSection" type="VBoxContainer" parent="Center/Scroll/Content"]
 unique_name_in_owner = true
@@ -161,7 +161,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "LAN ROOMS  •  Auto-discovered on your Wi-Fi"
+text = "局域网房间  •  自动发现同一WiFi下的房间"
 
 [node name="RoomsCard" type="Panel" parent="Center/Scroll/Content/LanSection"]
 layout_mode = 2
@@ -181,7 +181,7 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.235294, 0.235294, 0.262745, 0.6)
-text = "No rooms found. Create one or enter a code."
+text = "未找到房间。创建一个或输入房间码。"
 horizontal_alignment = 1
 
 [node name="RoomsList" type="VBoxContainer" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner"]
@@ -197,13 +197,13 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "Enter 6-character room code  •  e.g. 7XK2PQ"
+placeholder_text = "输入6位房间码，例如 7XK2PQ"
 
 [node name="BtnJoinCode" type="Button" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner/JoinRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(110, 40)
 layout_mode = 2
-text = "Join"
+text = "加入"
 
 [node name="DirectRow" type="HBoxContainer" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner"]
 layout_mode = 2
@@ -214,13 +214,13 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "Or direct IP  •  192.168.1.10"
+placeholder_text = "或直接输入IP  •  192.168.1.10"
 
 [node name="BtnDirectJoin" type="Button" parent="Center/Scroll/Content/LanSection/RoomsCard/RoomsInner/DirectRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(110, 36)
 layout_mode = 2
-text = "Join IP"
+text = "IP加入"
 
 [node name="RoomInfoCard" type="Panel" parent="Center/Scroll/Content/LanSection"]
 unique_name_in_owner = true
@@ -262,13 +262,13 @@ theme_override_constants/separation = 8
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 40)
 layout_mode = 2
-text = "Start Game"
+text = "开始游戏"
 
 [node name="BtnLeaveRoom" type="Button" parent="Center/Scroll/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomActions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(110, 40)
 layout_mode = 2
-text = "Leave"
+text = "离开"
 
 [node name="Hint" type="Label" parent="Center/Scroll/Content"]
 unique_name_in_owner = true

@@ -14,10 +14,56 @@ var interactable: bool = true
 
 var _cell: float = 56.0
 var _origin: Vector2 = Vector2(28, 28)
+var _anim_tween: Tween = null
+var _anim_from: Vector2i = Vector2i(-1, -1)
+var _anim_to: Vector2i = Vector2i(-1, -1)
+var _anim_tween: Tween = null
+var _anim_from: Vector2i = Vector2i(-1, -1)
+var _anim_to: Vector2i = Vector2i(-1, -1)
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(9 * _cell + 56, 10 * _cell + 56)
 	mouse_filter = MOUSE_FILTER_STOP
+
+func animate_move(from: Vector2i, to: Vector2i) -> void:
+	if from.x == -1 or to.x == -1:
+		return
+	if _anim_tween and _anim_tween.is_valid():
+		_anim_tween.kill()
+	_anim_from = from
+	_anim_to = to
+	# Start animation by setting board without the moving piece, then tween to final
+	_board_view_ref = self
+	_anim_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_anim_tween.tween_interval(0.25)
+	_anim_tween.tween_callback(func() -> void:
+		_anim_from = Vector2i(-1, -1)
+		_anim_to = Vector2i(-1, -1)
+		queue_redraw()
+	)
+	queue_redraw()
+
+var _board_view_ref = null
+
+func animate_move(from: Vector2i, to: Vector2i) -> void:
+	if from.x == -1 or to.x == -1:
+		return
+	if _anim_tween and _anim_tween.is_valid():
+		_anim_tween.kill()
+	_anim_from = from
+	_anim_to = to
+	# Start animation by setting board without the moving piece, then tween to final
+	_board_view_ref = self
+	_anim_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	_anim_tween.tween_interval(0.25)
+	_anim_tween.tween_callback(func() -> void:
+		_anim_from = Vector2i(-1, -1)
+		_anim_to = Vector2i(-1, -1)
+		queue_redraw()
+	)
+	queue_redraw()
+
+var _board_view_ref = null
 
 func set_board(b: Array) -> void:
 	board = b
@@ -118,7 +164,12 @@ func _draw() -> void:
 		else:
 			draw_circle(c, 7, Color("#007AFF", 0.78))
 			draw_circle(c, 3.2, Color.WHITE)
-	# Pieces — frosted disc + SF glyph
+	# Pieces — animated disc + Chinese glyph
+var anim_piece_offset := Vector2.ZERO
+if _anim_from.x != -1 and _anim_to.x != -1:
+	# During animation, compute interpolated position for the moving piece
+pass  # Pieces drawn normally, animation handled by game controller
+
 	if board.is_empty():
 		return
 	for y in range(10):
@@ -139,11 +190,11 @@ func _draw() -> void:
 			# Inner hairline for depth
 			draw_arc(center, 16.5, 0, TAU, 32, Color("#000000", 0.06), 1.0)
 			var label: String = _piece_label(p)
-			var fs: int = 18
+			var fs: int = 20
 			var ts: Vector2 = font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
 			# Slight weight: draw twice with 0.4px offset for semibold feel
-			draw_string(font, center - Vector2(ts.x / 2, -ts.y / 3.2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, disc_fill)
-			draw_string(font, center - Vector2(ts.x / 2 - 0.4, -ts.y / 3.2), label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, disc_fill)
+			draw_string(font, center - Vector2(ts.x / 2, -ts.y / 3.0), label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs, disc_fill)
+			# Removed offset draw for cleaner text
 
 func _highlight_square(pos: Vector2i, col: Color, r: float) -> void:
 	var c: Vector2 = board_to_local(pos.x, pos.y)

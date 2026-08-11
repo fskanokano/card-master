@@ -65,10 +65,10 @@ func _wire_buttons() -> void:
 func _wire_network() -> void:
 	NetworkHub.peer_connected.connect(func(_id: int) -> void: _refresh_ui())
 	NetworkHub.peer_disconnected.connect(func(_id: int) -> void: _refresh_ui())
-	NetworkHub.connection_failed.connect(func() -> void: _sub_label.text = "Connection failed.")
+	NetworkHub.connection_failed.connect(func() -> void: _sub_label.text = "连接失败。")
 	RoomManager.room_peer_left.connect(func(_id: int) -> void:
 		if not _game_over:
-			_sub_label.text = "Opponent disconnected."
+			_sub_label.text = "对手已断开连接。"
 	)
 	RoomManager.room_error.connect(func(msg: String) -> void: _sub_label.text = msg)
 
@@ -140,7 +140,8 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 	_selected = Vector2i(-1, -1)
 	move_made.emit(from, to)
 	_check_game_over(mover)
-	_sync_board()
+	# Animate piece movement
+	_board_view.animate_move(from, to)
 	_refresh_ui()
 	if broadcast and _is_lan():
 		_rpc_remote_move.rpc(from, to)
@@ -152,18 +153,18 @@ func _check_game_over(mover: int) -> void:
 	if XiangqiLogic.is_checkmate(_board, _side_to_move):
 		_game_over = true
 		var winner: String = "Red" if mover == XiangqiLogic.RED else "Black"
-		_sub_label.text = "%s wins by checkmate." % winner
+		_sub_label.text = "%s 将杀获胜。" % ("红方" if mover == XiangqiLogic.RED else "黑方")
 		game_over.emit({"winner": mover, "reason": "checkmate"})
 		return
 	if XiangqiLogic.is_stalemate_no_moves(_board, _side_to_move):
 		if XiangqiLogic.is_in_check(_board, _side_to_move):
 			_game_over = true
 			var w2: String = "Red" if mover == XiangqiLogic.RED else "Black"
-			_sub_label.text = "%s wins." % w2
+			_sub_label.text = "%s 获胜。" % ("红方" if mover == XiangqiLogic.RED else "黑方")
 			game_over.emit({"winner": mover, "reason": "checkmate"})
 		else:
 			_game_over = true
-			_sub_label.text = "Draw — stalemate."
+			_sub_label.text = "和棋 — 困毙。"
 			game_over.emit({"winner": 0, "reason": "stalemate"})
 
 func _is_lan() -> bool:
@@ -180,7 +181,7 @@ func _trigger_ai() -> void:
 	_ai_thinking = true
 	_sync_board()
 	_refresh_ui()
-	# Defer to next frame so UI paints "Thinking…"
+	# Defer to next frame so UI paints "AI 思考中…"
 	await get_tree().process_frame
 	var mv: Dictionary = XiangqiAI.best_move(_board, _side_to_move, 2)
 	_ai_thinking = false
@@ -215,27 +216,27 @@ func _on_undo() -> void:
 
 func _refresh_ui() -> void:
 	if _game_over:
-		_status_label.text = "Game Over"
+		_status_label.text = "对局结束"
 		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
 		_board_view.interactable = false
 		return
-	var side_name: String = "Red" if _side_to_move == XiangqiLogic.RED else "Black"
+	var side_name: String = "红方" if _side_to_move == XiangqiLogic.RED else "黑方"
 	var my_turn: bool = _is_my_turn()
 	if AppState.current_mode == AppState.Mode.AI:
 		if _ai_thinking:
-			_status_label.text = "Thinking…"
-			_sub_label.text = "Black is calculating."
+			_status_label.text = "AI 思考中…"
+			_sub_label.text = "黑方正在计算。"
 		elif my_turn:
-			_status_label.text = "Your move"
-			_sub_label.text = "You are Red  •  Tap a piece, then a highlighted square."
+			_status_label.text = "轮到你走棋"
+			_sub_label.text = "你是红方  •  点击棋子，再点击高亮位置。"
 		else:
 			_status_label.text = "Opponent’s move"
-			_sub_label.text = "Black to play."
+			_sub_label.text = "黑方走棋。"
 	elif _is_lan():
-		var role: String = "Host (Red)" if AppState.current_mode == AppState.Mode.LAN_HOST else "Client (Black)"
+		var role: String = "主机 (红方)" if AppState.current_mode == AppState.Mode.LAN_HOST else "客户端 (黑方)"
 		if my_turn:
 			_status_label.text = "Your move  •  %s" % side_name
-			_sub_label.text = "%s  •  %s" % [role, "LAN — your turn." if NetworkHub.is_connected_to_peer() else "Waiting for peer…"]
+			_sub_label.text = "%s  •  %s" % [role, "局域网 — 你的回合。" if NetworkHub.is_connected_to_peer() else "等待对手连接…"]
 		else:
 			_status_label.text = "Opponent’s move  •  %s" % side_name
 			_sub_label.text = "%s  •  Waiting for opponent." % role
@@ -244,7 +245,7 @@ func _refresh_ui() -> void:
 		_sub_label.text = "Tap a piece, then a highlighted square."
 	_status_label.add_theme_color_override("font_color", ApplePalette.LABEL)
 	if XiangqiLogic.is_in_check(_board, _side_to_move):
-		_status_label.text += "  •  Check!"
+		_status_label.text += "  •  将军！"
 		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
 	_board_view.interactable = not _game_over and not _ai_thinking and my_turn
 

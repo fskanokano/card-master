@@ -71,8 +71,8 @@ func _wire_rooms() -> void:
 	_room_manager.room_created.connect(_on_room_created)
 	_room_manager.room_joined.connect(_on_room_joined)
 	_room_manager.room_error.connect(func(msg: String) -> void: _hint.text = msg)
-	_room_manager.room_peer_joined.connect(func(_id: int) -> void: _room_sub.text = "Opponent joined — tap Start Game.")
-	_room_manager.room_peer_left.connect(func(_id: int) -> void: _room_sub.text = "Opponent left.")
+	_room_manager.room_peer_joined.connect(func(_id: int) -> void: _room_sub.text = "对手已加入 — 点击开始游戏。")
+	_room_manager.room_peer_left.connect(func(_id: int) -> void: _room_sub.text = "对手已离开。")
 
 # -- Game grid --
 
@@ -133,7 +133,7 @@ func _build_grid() -> void:
 		title.add_theme_color_override("font_color", ApplePalette.LABEL if available else ApplePalette.LABEL_TERTIARY)
 		vbox.add_child(title)
 		var sub := Label.new()
-		sub.text = "Available" if available else "Coming Soon"
+		sub.text = "可用" if available else "敬请期待"
 		sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		sub.add_theme_font_size_override("font_size", 12)
 		sub.add_theme_color_override("font_color", ApplePalette.GREEN if available else ApplePalette.LABEL_TERTIARY)
@@ -181,7 +181,7 @@ func _on_create_room() -> void:
 		return
 	_in_room = true
 	_room_code_label.text = code
-	_room_sub.text = "Share this code with a friend on the same Wi-Fi"
+	_room_sub.text = "将此房间码分享给同一WiFi下的好友"
 	_room_info.visible = true
 	_lan_section.visible = true
 	_hint.text = "Room %s created. Waiting for opponent…" % code
@@ -255,21 +255,21 @@ func _on_join_discovered(info: Dictionary) -> void:
 func _on_join_code() -> void:
 	var code: String = _room_code_input.text.strip_edges().to_upper()
 	if code == "":
-		_hint.text = "Enter a room code."
+		_hint.text = "请输入房间码。"
 		return
 	var already_discovered: bool = not _lan_discovery.find_room_by_code(code).is_empty()
 	var err: Error = _room_manager.join_room_by_code(code)
 	if err != OK:
 		return
 	if not already_discovered:
-		_hint.text = "Joining %s…" % code
+		_hint.text = "正在加入 %s…" % code
 		return
 	_on_room_joined(code)
 
 func _on_direct_join() -> void:
 	var ip: String = _direct_ip_input.text.strip_edges()
 	if ip == "":
-		_hint.text = "Enter an IP address."
+		_hint.text = "请输入IP地址。"
 		return
 	var port: int = 7777
 	if ip.contains(":"):
@@ -290,7 +290,7 @@ func _on_room_created(code: String, _port: int) -> void:
 func _on_room_joined(code: String) -> void:
 	_in_room = true
 	_room_code_label.text = code
-	_room_sub.text = "Joined room %s — tap Start Game." % code
+	_room_sub.text = "已加入房间 %s — 点击开始游戏。" % code
 	_room_info.visible = true
 	%BtnStartGame.text = "Start Game"
 
@@ -298,7 +298,7 @@ func _on_leave_room() -> void:
 	_room_manager.leave_room()
 	_in_room = false
 	_room_info.visible = false
-	_hint.text = "Left room."
+	_hint.text = "已离开房间。"
 	# Keep browsing if section was open
 	if _lan_section.visible:
 		_lan_discovery.start_listening()
