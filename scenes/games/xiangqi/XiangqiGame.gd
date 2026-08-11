@@ -10,7 +10,8 @@ var _ai_thinking: bool = false
 var _my_side: int = XiangqiLogic.RED
 var _is_animating: bool = false
 
-@onready var _board_view: XiangqiBoard = %XiangqiBoard
+@onready var _board_view: XiangqiBoard3D = %XiangqiBoard
+var _board_view_compat: Control = null
 @onready var _status_card: Panel = %StatusCard
 @onready var _status_label: Label = %StatusLabel
 @onready var _sub_label: Label = %SubLabel
@@ -50,17 +51,26 @@ func _animate_enter() -> void:
 func _on_viewport_resized() -> void:
 	_apply_immersive_insets()
 	_fit_board_to_stage()
-	if _board_view != null:
+	if _board_view != null and _board_view.has_method("_update_layout"):
 		_board_view._update_layout()
+	if _board_view != null and _board_view.has_method("update_layout"):
+		var stage2: Control = get_node_or_null("BoardWrap") as Control
+		if stage2 != null:
+			_board_view.update_layout(stage2.size)
 
 func _fit_board_to_stage() -> void:
-	# 强制棋盘控件跟随对局舞台，不让 custom_minimum_size 把它缩成桌面端小卡片。
 	var stage: Control = get_node_or_null("BoardWrap") as Control
-	if stage == null or _board_view == null or stage.size.x <= 0 or stage.size.y <= 0:
+	if stage == null or _board_view == null:
 		return
-	_board_view.position = Vector2.ZERO
-	_board_view.size = stage.size
-	_board_view.custom_minimum_size = Vector2.ZERO
+	if _board_view is Control:
+		if stage.size.x <= 0 or stage.size.y <= 0:
+			return
+		(_board_view as Control).position = Vector2.ZERO
+		(_board_view as Control).size = stage.size
+		(_board_view as Control).custom_minimum_size = Vector2.ZERO
+	else:
+		if _board_view.has_method("update_layout"):
+			_board_view.update_layout(stage.size)
 
 func _apply_immersive_insets() -> void:
 	var safe := DisplayServer.get_display_safe_area()
@@ -186,7 +196,12 @@ func new_game() -> void:
 	_ai_thinking = false
 	_is_animating = false
 	_history.clear()
-	_board_view.set_last_move(Vector2i(-1, -1), Vector2i(-1, -1))
+	if _board_view != null:
+		if _board_view.has_method("cancel_animation"):
+			_board_view.cancel_animation()
+		if _board_view.has_method("cancel_gesture"):
+			_board_view.cancel_gesture()
+		_board_view.set_last_move(Vector2i(-1, -1), Vector2i(-1, -1))
 	var am: Node = get_node_or_null("/root/AudioManager")
 	if am != null and am.has_method("play_tap"):
 		am.call("play_tap")
@@ -348,8 +363,12 @@ func _trigger_ai() -> void:
 func _on_undo() -> void:
 	if _is_animating or _history.is_empty() or _game_over:
 		return
-	if _board_view.is_animating():
+	if _board_view != null and _board_view.has_method("is_animating") and _board_view.is_animating():
 		return
+	if _board_view != null and _board_view.has_method("cancel_animation"):
+		_board_view.cancel_animation()
+	if _board_view != null and _board_view.has_method("cancel_gesture"):
+		_board_view.cancel_gesture()
 	var am: Node = get_node_or_null("/root/AudioManager")
 	if am != null and am.has_method("play_tap"):
 		am.call("play_tap")
