@@ -640,6 +640,55 @@ theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.294118, 0.333333, 0.388235, 1)
 text = "© 2026 CARDMASTER ATELIER  ·  Crafted for collectors  ·  v1.0"
 
+[node name="MobileDock" type="Panel" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -92.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
+visible = false
+mouse_filter = 0
+
+[node name="DockInner" type="HBoxContainer" parent="MobileDock"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="BtnMobileAI" type="Button" parent="MobileDock/DockInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "▶  开始对局"
+
+[node name="BtnMobileCreate" type="Button" parent="MobileDock/DockInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "创建房间"
+
+[node name="BtnMobileBrowse" type="Button" parent="MobileDock/DockInner"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "找房间"
+
 [node name="OnlineDialog" type="AcceptDialog" parent="."]
 unique_name_in_owner = true
 title = "在线对战"

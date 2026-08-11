@@ -28,6 +28,10 @@ var _card_nodes: Dictionary = {}
 @onready var _btn_create: Button = %BtnCreateRoom
 @onready var _btn_browse: Button = %BtnBrowseRooms
 @onready var _btn_online: Button = %BtnOnline
+@onready var _mobile_dock: Panel = %MobileDock
+@onready var _mobile_ai: Button = %BtnMobileAI
+@onready var _mobile_create: Button = %BtnMobileCreate
+@onready var _mobile_browse: Button = %BtnMobileBrowse
 
 func _ready() -> void:
 	_apply_shell()
@@ -74,18 +78,26 @@ func _apply_immersive_insets() -> void:
 	if inset_top == 0 and is_mobile:
 		inset_top = 30
 		inset_bottom = 22
+	var top_h: int = 68 if is_mobile else 72
+	var dock_h: int = 92 if is_mobile else 0
 	var top_nav: Panel = get_node_or_null("TopNav") as Panel
 	if top_nav != null:
 		top_nav.offset_top = inset_top
-		top_nav.offset_bottom = inset_top + 72
+		top_nav.offset_bottom = inset_top + top_h
 		top_nav.offset_left = inset_left
 		top_nav.offset_right = -inset_right
 	var scroll: ScrollContainer = get_node_or_null("MainScroll") as ScrollContainer
 	if scroll != null:
-		scroll.offset_top = inset_top + 72
-		scroll.offset_bottom = -inset_bottom
+		scroll.offset_top = inset_top + top_h
+		scroll.offset_bottom = -inset_bottom - dock_h
 		scroll.offset_left = inset_left
 		scroll.offset_right = -inset_right
+	if _mobile_dock != null:
+		_mobile_dock.visible = is_mobile
+		_mobile_dock.offset_top = -dock_h - inset_bottom if is_mobile else 0
+		_mobile_dock.offset_bottom = -inset_bottom if is_mobile else 0
+		_mobile_dock.offset_left = inset_left if is_mobile else 0
+		_mobile_dock.offset_right = -inset_right if is_mobile else 0
 
 func _update_responsive() -> void:
 	var vp: Vector2 = get_viewport_rect().size
@@ -113,31 +125,85 @@ func _update_responsive() -> void:
 	# 手机大厅只保留当前可玩的象棋，避免三个入口挤在首屏造成视觉重叠
 	var hero_card: Panel = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard") as Panel
 	var hero_right: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight") as Control
+	var hero_left: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft") as Control
+	var section_games: Control = get_node_or_null("MainScroll/CenterWrap/Content/SectionGames") as Control
+	var game_grid: Control = get_node_or_null("MainScroll/CenterWrap/Content/GameGrid") as Control
 	var section_modes: Control = get_node_or_null("MainScroll/CenterWrap/Content/SectionModes") as Control
 	var modes_card: Control = get_node_or_null("MainScroll/CenterWrap/Content/ModesCard") as Control
+	var footer: Control = get_node_or_null("MainScroll/CenterWrap/Content/Footer") as Control
+	var eyebrow: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/Eyebrow") as Label
+	var title: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitle") as Label
+	var title_en: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitleEN") as Label
+	var desc_label: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroDesc") as Label
+	var stats: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroStats") as Control
+	var hero_actions: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroActions") as Control
 	if is_mobile:
+		if content != null:
+			content.add_theme_constant_override("separation", 14)
 		if hero_card != null:
-			hero_card.custom_minimum_size.y = 520
+			hero_card.custom_minimum_size.y = 438
+		if hero_left != null:
+			hero_left.add_theme_constant_override("separation", 8)
 		if hero_right != null:
-			hero_right.visible = false
+			hero_right.visible = true
+			hero_right.custom_minimum_size.y = 188
+		if section_games != null:
+			section_games.visible = false
+		if game_grid != null:
+			game_grid.visible = false
 		if section_modes != null:
 			section_modes.visible = false
 		if modes_card != null:
 			modes_card.visible = false
+		if footer != null:
+			footer.visible = false
+		if eyebrow != null:
+			eyebrow.text = "今日棋局  ·  XIANGQI"
+		if title != null:
+			title.text = "来一局象棋"
+			title.add_theme_font_size_override("font_size", 34)
+		if title_en != null:
+			title_en.visible = false
+		if desc_label != null:
+			desc_label.text = "从一局人机对战开始，感受每一步落子的重量。"
+			desc_label.add_theme_font_size_override("font_size", 16)
+		if stats != null:
+			stats.visible = false
+		if hero_actions != null:
+			hero_actions.visible = false
 	else:
+		if content != null:
+			content.add_theme_constant_override("separation", 22)
 		if hero_card != null:
 			hero_card.custom_minimum_size.y = 400
 		if hero_right != null:
 			hero_right.visible = true
+			hero_right.custom_minimum_size.y = 260
+		if section_games != null:
+			section_games.visible = true
+		if game_grid != null:
+			game_grid.visible = true
 		if section_modes != null:
 			section_modes.visible = true
 		if modes_card != null:
 			modes_card.visible = true
-	# 标题：手机端更大
-	var title: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitle") as Label
-	if title != null:
-		title.add_theme_font_size_override("font_size", 38 if is_mobile else 44)
-		title.add_theme_color_override("font_color", ApplePalette.LABEL)
+		if footer != null:
+			footer.visible = true
+		if eyebrow != null:
+			eyebrow.text = "EST. 2026  ·  BOARD ATELIER  ·  EDITION I"
+		if title != null:
+			title.text = "卡牌大师"
+			title.add_theme_font_size_override("font_size", 44)
+		if title_en != null:
+			title_en.visible = true
+		if desc_label != null:
+			desc_label.text = "象棋开局，围棋与国际象棋已在路上。为收藏级对局而生的游戏大厅。"
+			desc_label.add_theme_font_size_override("font_size", 14)
+		if stats != null:
+			stats.visible = true
+		if hero_actions != null:
+			hero_actions.visible = true
+	# 手机首屏只保留一个明确主任务，桌面端继续展示完整收藏入口。
 	# TopNav 手机：隐藏 Badge 文字的中文，只留点；名字输入压缩
 	var badge: Control = get_node_or_null("TopNav/NavInner/NavBadge") as Control
 	var name_wrap: Control = get_node_or_null("TopNav/NavInner/NameWrap") as Control
@@ -222,6 +288,21 @@ func _apply_shell() -> void:
 	_btn_browse.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_secondary_button(_btn_online)
 	_btn_online.add_theme_font_size_override("font_size", 15)
+	AppleStyle.apply_primary_button(_mobile_ai)
+	AppleStyle.apply_secondary_button(_mobile_create)
+	AppleStyle.apply_secondary_button(_mobile_browse)
+	for mobile_button in [_mobile_ai, _mobile_create, _mobile_browse]:
+		mobile_button.add_theme_font_size_override("font_size", 15)
+		mobile_button.custom_minimum_size.y = 64
+	var dock_sb := StyleBoxFlat.new()
+	dock_sb.bg_color = Color("#111710", 0.98)
+	dock_sb.border_color = ApplePalette.HAIRLINE_GOLD
+	dock_sb.border_width_top = 1
+	dock_sb.content_margin_left = 10
+	dock_sb.content_margin_top = 10
+	dock_sb.content_margin_right = 10
+	dock_sb.content_margin_bottom = 10
+	_mobile_dock.add_theme_stylebox_override("panel", dock_sb)
 	AppleStyle.apply_primary_button(%BtnJoinCode)
 	%BtnJoinCode.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_secondary_button(%BtnDirectJoin)
@@ -260,6 +341,9 @@ func _wire_all() -> void:
 	_btn_create.pressed.connect(_on_create_room)
 	_btn_browse.pressed.connect(_on_browse_rooms)
 	_btn_online.pressed.connect(func() -> void: _online_dialog.popup_centered(); _sfx("tap"))
+	_mobile_ai.pressed.connect(_on_ai)
+	_mobile_create.pressed.connect(_on_create_room)
+	_mobile_browse.pressed.connect(_on_browse_rooms)
 	%BtnJoinCode.pressed.connect(_on_join_code)
 	%BtnDirectJoin.pressed.connect(_on_direct_join)
 	%BtnStartGame.pressed.connect(_on_start_game)
