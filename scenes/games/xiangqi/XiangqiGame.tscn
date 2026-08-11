@@ -25,8 +25,8 @@ mouse_filter = 2
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_top = 56.0
-offset_bottom = 320.0
+offset_top = 68.0
+offset_bottom = 420.0
 grow_horizontal = 2
 color = Color(0.0823529, 0.121569, 0.176471, 1)
 mouse_filter = 2
@@ -38,7 +38,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.18)
+color = Color(0, 0, 0, 0.2)
 mouse_filter = 2
 
 [node name="TopBar" type="Panel" parent="."]
@@ -48,7 +48,7 @@ anchor_right = 1.0
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 0.0
-offset_bottom = 64.0
+offset_bottom = 68.0
 grow_horizontal = 2
 
 [node name="TopInner" type="HBoxContainer" parent="TopBar"]
@@ -58,24 +58,24 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 alignment = 1
 
 [node name="BtnLobby" type="Button" parent="TopBar/TopInner"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(110, 40)
+custom_minimum_size = Vector2(112, 44)
 layout_mode = 2
 text = "‹  大厅"
 
 [node name="TopTitle" type="VBoxContainer" parent="TopBar/TopInner"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 0
+theme_override_constants/separation = 1
 alignment = 1
 
 [node name="TitleCN" type="Label" parent="TopBar/TopInner/TopTitle"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 17
 theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
 text = "中国象棋  ·  XIANGQI"
 horizontal_alignment = 1
@@ -89,7 +89,7 @@ horizontal_alignment = 1
 
 [node name="StatusCard" type="Panel" parent="TopBar/TopInner"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 44)
+custom_minimum_size = Vector2(152, 46)
 layout_mode = 2
 size_flags_vertical = 4
 
@@ -101,7 +101,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.94902, 0.929412, 0.901961, 1)
 text = "红方走棋"
 horizontal_alignment = 1
@@ -109,13 +109,13 @@ vertical_alignment = 1
 
 [node name="BtnNew" type="Button" parent="TopBar/TopInner"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(84, 40)
+custom_minimum_size = Vector2(92, 44)
 layout_mode = 2
 text = "新局"
 
 [node name="BtnUndo" type="Button" parent="TopBar/TopInner"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(84, 40)
+custom_minimum_size = Vector2(92, 44)
 layout_mode = 2
 text = "悔棋"
 
@@ -124,14 +124,14 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 64.0
-offset_bottom = -52.0
+offset_top = 68.0
+offset_bottom = -64.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="XiangqiBoard" type="Control" parent="BoardWrap"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(400, 440)
+custom_minimum_size = Vector2(360, 600)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -144,7 +144,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_top = -52.0
+offset_top = -64.0
 offset_right = 0.0
 offset_bottom = 0.0
 grow_horizontal = 2
@@ -157,11 +157,11 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 alignment = 1
 
 [node name="HintDot" type="ColorRect" parent="BottomBar/BottomInner"]
-custom_minimum_size = Vector2(6, 6)
+custom_minimum_size = Vector2(7, 7)
 layout_mode = 2
 size_flags_vertical = 4
 color = Color(0.831373, 0.647059, 0.454902, 1)
@@ -170,13 +170,13 @@ color = Color(0.831373, 0.647059, 0.454902, 1)
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 theme_override_colors/font_color = Color(0.603922, 0.639216, 0.698039, 1)
-text = "拖拽棋子或点击鎏金落点  ·  将军时状态栏呈赤色"
+text = "长按拖动棋子到鎏金落点  ·  非法位置会弹回"
 autowrap_mode = 3
 
 [node name="BottomBadge" type="Panel" parent="BottomBar/BottomInner"]
-custom_minimum_size = Vector2(96, 24)
+custom_minimum_size = Vector2(96, 26)
 layout_mode = 2
 size_flags_vertical = 4
 

@@ -23,18 +23,19 @@ AppState="*res://autoload/AppState.gd"
 NetworkHub="*res://autoload/NetworkHub.gd"
 LanDiscovery="*res://autoload/LanDiscovery.gd"
 RoomManager="*res://autoload/RoomManager.gd"
+AudioManager="*res://autoload/AudioManager.gd"
 
 [display]
 
-window/size/viewport_width=1280
-window/size/viewport_height=720
+window/size/viewport_width=720
+window/size/viewport_height=1280
 window/size/resizable=true
 window/size/initial_position_type=2
 window/size/transparent=false
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=0
-window/per_table/handheld/orientation=0
+window/handheld/orientation=1
+window/per_table/handheld/orientation=1
 window/vsync/vsync_mode=1
 window/android/keep_screen_on=true
 

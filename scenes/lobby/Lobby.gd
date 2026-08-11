@@ -1,5 +1,5 @@
 extends Control
-## Lobby — Enterprise Dark-Luxury · 商业化顶级大厅 + 全面屏沉浸 + 响应式
+## Lobby — 真·手游化大厅：竖屏全宽、超大字体按钮、全面屏吃满、精简信息、全量音效
 
 const Registry = preload("res://autoload/GameRegistry.gd")
 
@@ -29,8 +29,6 @@ var _card_nodes: Dictionary = {}
 @onready var _btn_browse: Button = %BtnBrowseRooms
 @onready var _btn_online: Button = %BtnOnline
 
-var _is_mobile_layout: bool = false
-
 func _ready() -> void:
 	_apply_shell()
 	_build_grid()
@@ -47,116 +45,110 @@ func _on_viewport_resized() -> void:
 	_apply_immersive_insets()
 	_update_responsive()
 
+func _sfx(key: String) -> void:
+	var am: Node = get_node_or_null("/root/AudioManager")
+	if am == null:
+		return
+	match key:
+		"tap": if am.has_method("play_tap"): am.call("play_tap")
+		"select": if am.has_method("play_select"): am.call("play_select")
+		"invalid": if am.has_method("play_invalid"): am.call("play_invalid")
+
 func _apply_immersive_insets() -> void:
 	var vp_size: Vector2 = get_viewport_rect().size
 	if vp_size.x < 10:
-		vp_size = Vector2(1280, 720)
-	# 安全区：刘海/手势条
+		vp_size = Vector2(720, 1280)
 	var safe := DisplayServer.get_display_safe_area()
 	var win_size := DisplayServer.window_get_size()
 	var inset_top: int = 0
 	var inset_bottom: int = 0
+	var inset_left: int = 0
+	var inset_right: int = 0
 	if safe.size.y > 0 and safe.position.y > 0:
 		inset_top = int(safe.position.y)
 		inset_bottom = int(win_size.y - (safe.position.y + safe.size.y))
-	var is_mobile: bool = vp_size.x < 760 or OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]
+	if safe.size.x > 0 and safe.position.x > 0:
+		inset_left = int(safe.position.x)
+		inset_right = int(win_size.x - (safe.position.x + safe.size.x))
+	var is_mobile: bool = vp_size.x < 780 or OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]
 	if inset_top == 0 and is_mobile:
-		inset_top = 28
-		inset_bottom = 20
+		inset_top = 30
+		inset_bottom = 22
 	var top_nav: Panel = get_node_or_null("TopNav") as Panel
 	if top_nav != null:
 		top_nav.offset_top = inset_top
-		top_nav.offset_bottom = inset_top + 64
+		top_nav.offset_bottom = inset_top + 72
+		top_nav.offset_left = inset_left
+		top_nav.offset_right = -inset_right
 	var scroll: ScrollContainer = get_node_or_null("MainScroll") as ScrollContainer
 	if scroll != null:
-		scroll.offset_top = inset_top + 64
+		scroll.offset_top = inset_top + 72
 		scroll.offset_bottom = -inset_bottom
+		scroll.offset_left = inset_left
+		scroll.offset_right = -inset_right
 
 func _update_responsive() -> void:
 	var vp: Vector2 = get_viewport_rect().size
 	if vp.x < 10:
-		vp = Vector2(1280, 720)
-	var is_mobile: bool = vp.x < 760
-	var is_tablet: bool = vp.x >= 760 and vp.x < 1024
-	_is_mobile_layout = is_mobile
-	# Content 宽度：手机几乎占满，桌面居中 1040
+		vp = Vector2(720, 1280)
+	var is_mobile: bool = vp.x < 780
+	var is_tablet: bool = vp.x >= 780 and vp.x < 1024
+	var safe := DisplayServer.get_display_safe_area()
+	var h_inset: int = 0
+	if safe.size.x > 0:
+		h_inset = int(safe.position.x) + int(DisplayServer.window_get_size().x - (safe.position.x + safe.size.x))
 	var content: VBoxContainer = get_node_or_null("MainScroll/CenterWrap/Content") as VBoxContainer
 	if content != null:
 		if is_mobile:
-			content.custom_minimum_size.x = max(320, vp.x - 24)
+			content.custom_minimum_size.x = max(340, vp.x - 20 - h_inset)
+			content.add_theme_constant_override("separation", 20)
 		elif is_tablet:
-			content.custom_minimum_size.x = min(760, vp.x - 32)
+			content.custom_minimum_size.x = min(720, vp.x - 28 - h_inset)
 		else:
-			content.custom_minimum_size.x = 1040
-	# Grid 列数
+			content.custom_minimum_size.x = 720
+			content.add_theme_constant_override("separation", 22)
+	# 网格：手机始终 1 列，卡片全宽超大
 	if _grid != null:
-		if is_mobile:
-			_grid.columns = 1
-		elif is_tablet:
-			_grid.columns = 2
-		else:
-			_grid.columns = 3
-	# Hero：手机纵向、隐藏右侧棋盘预览或置于下方
-	var hero_inner: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner") as Control
-	var hero_right: Control = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight") as Control
-	var hero_card: Panel = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard") as Panel
-	if hero_inner != null and hero_right != null and hero_card != null:
-		if is_mobile:
-			# HBox -> 通过把 HeroRight 移到下一行视觉上实现纵向：实际用 vertical 布局需重建，这里用简单隐藏/缩小
-			hero_right.visible = false
-			hero_card.custom_minimum_size.y = 0
-			# 缩小标题
-			var title: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitle") as Label
-			if title != null:
-				title.add_theme_font_size_override("font_size", 34)
-			# 按钮换行：让 HeroActions 自动换行（通过允许水平滚动，手机下上下堆叠）
-			var actions: HBoxContainer = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroActions") as HBoxContainer
-			if actions != null:
-				actions.add_theme_constant_override("separation", 8)
-		else:
-			hero_right.visible = true
-			hero_card.custom_minimum_size.y = 300
-			var title2: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitle") as Label
-			if title2 != null:
-				title2.add_theme_font_size_override("font_size", 46)
-	# TopNav：手机隐藏 Badge，压缩名字输入
+		_grid.columns = 1 if is_mobile else (2 if is_tablet else 1)
+	# 标题：手机端更大
+	var title: Label = get_node_or_null("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroLeft/HeroTitle") as Label
+	if title != null:
+		title.add_theme_font_size_override("font_size", 38 if is_mobile else 44)
+		title.add_theme_color_override("font_color", ApplePalette.LABEL)
+	# TopNav 手机：隐藏 Badge 文字的中文，只留点；名字输入压缩
 	var badge: Control = get_node_or_null("TopNav/NavInner/NavBadge") as Control
 	var name_wrap: Control = get_node_or_null("TopNav/NavInner/NameWrap") as Control
 	var logo_text: Control = get_node_or_null("TopNav/NavInner/LogoText") as Control
 	if badge != null:
-		badge.visible = not is_mobile
+		badge.visible = vp.x > 360
 	if name_wrap != null:
-		name_wrap.custom_minimum_size.x = 150 if is_mobile else 240
+		name_wrap.custom_minimum_size.x = 132 if is_mobile else 180
 	if logo_text != null:
-		logo_text.visible = not is_mobile or vp.x > 380
-	# 触发重建 grid 以更新卡片尺寸
+		logo_text.visible = vp.x > 340
 	_build_grid()
 
 # ── Shell styling ─────────────────────────────────────────
-
 func _apply_shell() -> void:
 	var top_nav: Panel = get_node("TopNav")
 	var nav_sb := StyleBoxFlat.new()
-	nav_sb.bg_color = Color("#0D1219", 0.92)
+	nav_sb.bg_color = Color("#0D1219", 0.98)
 	nav_sb.corner_radius_top_left = 0; nav_sb.corner_radius_top_right = 0
 	nav_sb.corner_radius_bottom_right = 0; nav_sb.corner_radius_bottom_left = 0
-	nav_sb.border_color = ApplePalette.SEPARATOR
-	nav_sb.border_width_bottom = 1
-	nav_sb.content_margin_left = 20; nav_sb.content_margin_top = 12; nav_sb.content_margin_right = 20; nav_sb.content_margin_bottom = 12
+	nav_sb.border_color = ApplePalette.SEPARATOR; nav_sb.border_width_bottom = 1
+	nav_sb.content_margin_left = 14; nav_sb.content_margin_top = 10; nav_sb.content_margin_right = 14; nav_sb.content_margin_bottom = 10
 	top_nav.add_theme_stylebox_override("panel", nav_sb)
 	var logo_mark: Panel = get_node("TopNav/NavInner/LogoMark")
 	var lm := StyleBoxFlat.new()
 	lm.bg_color = ApplePalette.GOLD
 	lm.corner_radius_top_left = 12; lm.corner_radius_top_right = 12; lm.corner_radius_bottom_right = 12; lm.corner_radius_bottom_left = 12
-	lm.content_margin_left = 0; lm.content_margin_top = 0; lm.content_margin_right = 0; lm.content_margin_bottom = 0
 	logo_mark.add_theme_stylebox_override("panel", lm)
-	var name_wrap: Panel = get_node("TopNav/NavInner/NameWrap")
+	var name_wrap_p: Panel = get_node("TopNav/NavInner/NameWrap")
 	var nw := StyleBoxFlat.new()
 	nw.bg_color = Color("#0D1219")
 	nw.corner_radius_top_left = 12; nw.corner_radius_top_right = 12; nw.corner_radius_bottom_right = 12; nw.corner_radius_bottom_left = 12
 	nw.border_color = ApplePalette.SEPARATOR; nw.border_width_left = 1; nw.border_width_top = 1; nw.border_width_right = 1; nw.border_width_bottom = 1
 	nw.content_margin_left = 12; nw.content_margin_top = 6; nw.content_margin_right = 12; nw.content_margin_bottom = 6
-	name_wrap.add_theme_stylebox_override("panel", nw)
+	name_wrap_p.add_theme_stylebox_override("panel", nw)
 	var badge: Panel = get_node("TopNav/NavInner/NavBadge")
 	var bs := StyleBoxFlat.new()
 	bs.bg_color = Color("#0E1A15")
@@ -167,13 +159,17 @@ func _apply_shell() -> void:
 	AppleStyle.apply_input(_name_input)
 	AppleStyle.apply_input(_room_code_input)
 	AppleStyle.apply_input(_direct_ip_input)
+	# 输入框更大更易点
+	for f in [_name_input, _room_code_input, _direct_ip_input]:
+		f.add_theme_font_size_override("font_size", 15)
+		f.custom_minimum_size.y = 52 if f != _name_input else 36
 	AppleStyle.apply_hero(get_node("MainScroll/CenterWrap/Content/HeroCard"))
 	var hero_right: Panel = get_node("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight")
 	var hr := StyleBoxFlat.new()
 	hr.bg_color = Color("#0D1219")
 	hr.corner_radius_top_left = 16; hr.corner_radius_top_right = 16; hr.corner_radius_bottom_right = 16; hr.corner_radius_bottom_left = 16
 	hr.border_color = ApplePalette.HAIRLINE_GOLD; hr.border_width_left = 1; hr.border_width_top = 1; hr.border_width_right = 1; hr.border_width_bottom = 1
-	hr.shadow_color = ApplePalette.SHADOW_SOFT; hr.shadow_size = 12
+	hr.shadow_color = ApplePalette.SHADOW_SOFT; hr.shadow_size = 14
 	hr.content_margin_left = 14; hr.content_margin_top = 14; hr.content_margin_right = 14; hr.content_margin_bottom = 14
 	hero_right.add_theme_stylebox_override("panel", hr)
 	AppleStyle.apply_glass(get_node("MainScroll/CenterWrap/Content/ModesCard"))
@@ -182,9 +178,9 @@ func _apply_shell() -> void:
 	var empty: Panel = get_node("MainScroll/CenterWrap/Content/LanSection/RoomsCard/RoomsInner/RoomsEmpty")
 	var es := StyleBoxFlat.new()
 	es.bg_color = Color("#0D1219")
-	es.corner_radius_top_left = 12; es.corner_radius_top_right = 12; es.corner_radius_bottom_right = 12; es.corner_radius_bottom_left = 12
+	es.corner_radius_top_left = 14; es.corner_radius_top_right = 14; es.corner_radius_bottom_right = 14; es.corner_radius_bottom_left = 14
 	es.border_color = ApplePalette.SEPARATOR; es.border_width_left = 1; es.border_width_top = 1; es.border_width_right = 1; es.border_width_bottom = 1
-	es.content_margin_left = 16; es.content_margin_top = 16; es.content_margin_right = 16; es.content_margin_bottom = 16
+	es.content_margin_left = 16; es.content_margin_top = 18; es.content_margin_right = 16; es.content_margin_bottom = 18
 	empty.add_theme_stylebox_override("panel", es)
 	var room_badge: Panel = get_node("MainScroll/CenterWrap/Content/LanSection/RoomInfoCard/RoomInfoInner/RoomInfoHeader/RoomBadge")
 	var rb := StyleBoxFlat.new()
@@ -193,21 +189,31 @@ func _apply_shell() -> void:
 	rb.border_color = ApplePalette.HAIRLINE_GOLD; rb.border_width_left = 1; rb.border_width_top = 1; rb.border_width_right = 1; rb.border_width_bottom = 1
 	rb.content_margin_left = 8; rb.content_margin_top = 4; rb.content_margin_right = 8; rb.content_margin_bottom = 4
 	room_badge.add_theme_stylebox_override("panel", rb)
+	# 主按钮超大
 	AppleStyle.apply_primary_button(_btn_ai)
+	_btn_ai.add_theme_font_size_override("font_size", 18)
+	_btn_ai.custom_minimum_size = Vector2(0, 56)
 	AppleStyle.apply_secondary_button(_btn_create)
+	_btn_create.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_secondary_button(_btn_browse)
+	_btn_browse.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_secondary_button(_btn_online)
-	_btn_online.modulate = Color(1, 1, 1, 0.88)
+	_btn_online.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_primary_button(%BtnJoinCode)
+	%BtnJoinCode.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_secondary_button(%BtnDirectJoin)
+	%BtnDirectJoin.add_theme_font_size_override("font_size", 15)
 	AppleStyle.apply_primary_button(%BtnStartGame)
+	%BtnStartGame.add_theme_font_size_override("font_size", 16)
 	AppleStyle.apply_secondary_button(%BtnLeaveRoom)
+	%BtnLeaveRoom.add_theme_font_size_override("font_size", 15)
 	for p in get_node("MainScroll/CenterWrap/Content/ModesCard/ModeRow").get_children():
 		if p is Button:
 			if p.text == "人机对战":
 				AppleStyle.apply_primary_button(p)
 			else:
 				AppleStyle.apply_secondary_button(p)
+			p.add_theme_font_size_override("font_size", 14)
 			if p.text == "人机对战":
 				p.pressed.connect(_on_ai)
 			elif p.text == "创建房间":
@@ -215,7 +221,7 @@ func _apply_shell() -> void:
 			elif p.text == "浏览房间":
 				p.pressed.connect(_on_browse_rooms)
 			elif p.text == "在线对战":
-				p.pressed.connect(func() -> void: _online_dialog.popup_centered())
+				p.pressed.connect(func() -> void: _online_dialog.popup_centered(); _sfx("tap"))
 
 func _restore_name() -> void:
 	var cur: String = str(_app_state.get("player_name"))
@@ -230,7 +236,7 @@ func _wire_all() -> void:
 	_btn_ai.pressed.connect(_on_ai)
 	_btn_create.pressed.connect(_on_create_room)
 	_btn_browse.pressed.connect(_on_browse_rooms)
-	_btn_online.pressed.connect(func() -> void: _online_dialog.popup_centered())
+	_btn_online.pressed.connect(func() -> void: _online_dialog.popup_centered(); _sfx("tap"))
 	%BtnJoinCode.pressed.connect(_on_join_code)
 	%BtnDirectJoin.pressed.connect(_on_direct_join)
 	%BtnStartGame.pressed.connect(_on_start_game)
@@ -242,8 +248,8 @@ func _wire_all() -> void:
 	_lan_discovery.peer_lost.connect(func(_ip: String) -> void: _refresh_rooms())
 	_room_manager.room_created.connect(_on_room_created)
 	_room_manager.room_joined.connect(_on_room_joined)
-	_room_manager.room_error.connect(func(msg: String) -> void: _set_hint(msg, true))
-	_room_manager.room_peer_joined.connect(func(_id: int) -> void: _room_sub.text = "对手已加入  ·  点击开始对局")
+	_room_manager.room_error.connect(func(msg: String) -> void: _set_hint(msg, true); _sfx("invalid"))
+	_room_manager.room_peer_joined.connect(func(_id: int) -> void: _room_sub.text = "对手已加入  ·  点击开始对局"; _sfx("select"))
 	_room_manager.room_peer_left.connect(func(_id: int) -> void: _room_sub.text = "对手已离开")
 	_room_code_label.mouse_filter = Control.MOUSE_FILTER_STOP
 	_room_code_label.gui_input.connect(func(e: InputEvent) -> void:
@@ -252,6 +258,7 @@ func _wire_all() -> void:
 			if code != "" and code != "——  ——  ——" and code != "------":
 				DisplayServer.clipboard_set(code)
 				_set_hint("已复制房间码 %s" % code, false)
+				_sfx("select")
 	)
 
 func _animate_entrance() -> void:
@@ -261,9 +268,9 @@ func _animate_entrance() -> void:
 	for n in [hero, grid, modes]:
 		n.modulate.a = 0.0
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-		tw.tween_property(n, "modulate:a", 1.0, 0.5)
-		tw.parallel().tween_property(n, "position:y", n.position.y, 0.5).from(n.position.y + 10)
-		await get_tree().create_timer(0.08).timeout
+		tw.tween_property(n, "modulate:a", 1.0, 0.42)
+		tw.parallel().tween_property(n, "position:y", n.position.y, 0.42).from(n.position.y + 12)
+		await get_tree().create_timer(0.07).timeout
 
 func _draw_hero_board_preview() -> void:
 	var host: Control = get_node("MainScroll/CenterWrap/Content/HeroCard/HeroInner/HeroRight/HeroBoardPreview")
@@ -301,20 +308,22 @@ func _make_game_card(g: Dictionary) -> Control:
 	var id: String = g.get("id", "")
 	var available: bool = g.get("status", "") == "available"
 	var card := Panel.new()
-	var is_mobile: bool = _is_mobile_layout
-	card.custom_minimum_size = Vector2(320, 200 if is_mobile else 220)
+	var vp: Vector2 = get_viewport_rect().size
+	var is_mobile: bool = vp.x < 780 or OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]
+	var card_h: float = 220 if is_mobile else 240
+	card.custom_minimum_size = Vector2(0, card_h)
 	card.mouse_filter = Control.MOUSE_FILTER_STOP if available else Control.MOUSE_FILTER_IGNORE
 	var sb := StyleBoxFlat.new()
 	if available and id == _selected_id:
 		sb.bg_color = Color("#131B28")
-		sb.corner_radius_top_left = 18; sb.corner_radius_top_right = 18; sb.corner_radius_bottom_right = 18; sb.corner_radius_bottom_left = 18
+		sb.corner_radius_top_left = 20; sb.corner_radius_top_right = 20; sb.corner_radius_bottom_right = 20; sb.corner_radius_bottom_left = 20
 		sb.border_color = ApplePalette.GOLD; sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1
-		sb.shadow_color = ApplePalette.GLOW_GOLD; sb.shadow_size = 18
+		sb.shadow_color = ApplePalette.GLOW_GOLD; sb.shadow_size = 20
 	else:
 		sb.bg_color = Color("#0F1621")
-		sb.corner_radius_top_left = 18; sb.corner_radius_top_right = 18; sb.corner_radius_bottom_right = 18; sb.corner_radius_bottom_left = 18
+		sb.corner_radius_top_left = 20; sb.corner_radius_top_right = 20; sb.corner_radius_bottom_right = 20; sb.corner_radius_bottom_left = 20
 		sb.border_color = ApplePalette.SEPARATOR; sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1
-		sb.shadow_color = ApplePalette.SHADOW_SOFT; sb.shadow_size = 10
+		sb.shadow_color = ApplePalette.SHADOW_SOFT; sb.shadow_size = 12
 	sb.content_margin_left = 0; sb.content_margin_top = 0; sb.content_margin_right = 0; sb.content_margin_bottom = 0
 	card.add_theme_stylebox_override("panel", sb)
 	var root_v := VBoxContainer.new()
@@ -322,7 +331,7 @@ func _make_game_card(g: Dictionary) -> Control:
 	root_v.add_theme_constant_override("separation", 0)
 	card.add_child(root_v)
 	var cover := Panel.new()
-	cover.custom_minimum_size = Vector2(0, 96 if is_mobile else 120)
+	cover.custom_minimum_size = Vector2(0, 112 if is_mobile else 128)
 	cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var cover_sb := StyleBoxFlat.new()
 	match id:
@@ -330,8 +339,8 @@ func _make_game_card(g: Dictionary) -> Control:
 		"chess_placeholder": cover_sb.bg_color = Color("#1A2A26")
 		"go_placeholder": cover_sb.bg_color = Color("#241E1A")
 		_: cover_sb.bg_color = Color("#141E2E")
-	cover_sb.corner_radius_top_left = 18; cover_sb.corner_radius_top_right = 18; cover_sb.corner_radius_bottom_right = 0; cover_sb.corner_radius_bottom_left = 0
-	cover_sb.content_margin_left = 16; cover_sb.content_margin_top = 14; cover_sb.content_margin_right = 16; cover_sb.content_margin_bottom = 14
+	cover_sb.corner_radius_top_left = 20; cover_sb.corner_radius_top_right = 20; cover_sb.corner_radius_bottom_right = 0; cover_sb.corner_radius_bottom_left = 0
+	cover_sb.content_margin_left = 18; cover_sb.content_margin_top = 16; cover_sb.content_margin_right = 18; cover_sb.content_margin_bottom = 16
 	cover.add_theme_stylebox_override("panel", cover_sb)
 	root_v.add_child(cover)
 	var cover_inner := Control.new()
@@ -350,19 +359,19 @@ func _make_game_card(g: Dictionary) -> Control:
 	badge_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cover_inner.add_child(badge_row)
 	var badge := Panel.new()
-	badge.custom_minimum_size = Vector2(0, 22)
+	badge.custom_minimum_size = Vector2(0, 24)
 	var badge_sb := StyleBoxFlat.new()
 	if available:
 		badge_sb.bg_color = Color("#D4A574")
 	else:
 		badge_sb.bg_color = Color("#1E2937")
 	badge_sb.corner_radius_top_left = 20; badge_sb.corner_radius_top_right = 20; badge_sb.corner_radius_bottom_right = 20; badge_sb.corner_radius_bottom_left = 20
-	badge_sb.content_margin_left = 10; badge_sb.content_margin_top = 3; badge_sb.content_margin_right = 10; badge_sb.content_margin_bottom = 3
+	badge_sb.content_margin_left = 12; badge_sb.content_margin_top = 4; badge_sb.content_margin_right = 12; badge_sb.content_margin_bottom = 4
 	badge.add_theme_stylebox_override("panel", badge_sb)
 	badge_row.add_child(badge)
 	var badge_lbl := Label.new()
 	badge_lbl.text = "可对局" if available else "即将上线"
-	badge_lbl.add_theme_font_size_override("font_size", 11)
+	badge_lbl.add_theme_font_size_override("font_size", 12)
 	badge_lbl.add_theme_color_override("font_color", Color("#1A1208") if available else Color("#6B7585"))
 	badge_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -374,25 +383,25 @@ func _make_game_card(g: Dictionary) -> Control:
 	if available and id == _selected_id:
 		var check := Label.new()
 		check.text = "✓  已选"
-		check.add_theme_font_size_override("font_size", 11)
+		check.add_theme_font_size_override("font_size", 12)
 		check.add_theme_color_override("font_color", ApplePalette.GOLD_BRIGHT)
 		check.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		badge_row.add_child(check)
 	var cover_title := Label.new()
 	cover_title.text = _cover_glyph(id)
-	cover_title.add_theme_font_size_override("font_size", 28)
-	cover_title.add_theme_color_override("font_color", Color("#F2EDE6", 0.94))
+	cover_title.add_theme_font_size_override("font_size", 32)
+	cover_title.add_theme_color_override("font_color", Color("#F2EDE6", 0.96))
 	cover_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	cover_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	cover_title.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cover_title.offset_left = 16; cover_title.offset_top = 40
+	cover_title.offset_left = 16; cover_title.offset_top = 46
 	cover_inner.add_child(cover_title)
 	var cover_sub := Label.new()
 	cover_sub.text = _cover_sub(id)
-	cover_sub.add_theme_font_size_override("font_size", 11)
+	cover_sub.add_theme_font_size_override("font_size", 12)
 	cover_sub.add_theme_color_override("font_color", Color("#9AA3B2"))
 	cover_sub.set_anchors_preset(Control.PRESET_FULL_RECT)
-	cover_sub.offset_left = 16; cover_sub.offset_top = 74
+	cover_sub.offset_left = 16; cover_sub.offset_top = 82
 	cover_inner.add_child(cover_sub)
 	var body := VBoxContainer.new()
 	body.add_theme_constant_override("separation", 6)
@@ -400,23 +409,22 @@ func _make_game_card(g: Dictionary) -> Control:
 	body_pad.add_theme_stylebox_override("panel", _body_pad_style(available and id == _selected_id))
 	body.add_child(body_pad)
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_left", 18)
 	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_right", 18)
 	margin.add_theme_constant_override("margin_bottom", 14)
 	root_v.add_child(margin)
 	margin.add_child(body)
 	var title := Label.new()
 	title.text = g.get("name", id)
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color", ApplePalette.LABEL if available else ApplePalette.LABEL_DIM)
 	body.add_child(title)
 	var desc := Label.new()
 	desc.text = _game_desc(id, available)
-	desc.add_theme_font_size_override("font_size", 12)
+	desc.add_theme_font_size_override("font_size", 13)
 	desc.add_theme_color_override("font_color", ApplePalette.LABEL_SECONDARY if available else ApplePalette.LABEL_DIM)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(0, 0)
 	body.add_child(desc)
 	var meta := HBoxContainer.new()
 	meta.add_theme_constant_override("separation", 8)
@@ -424,18 +432,18 @@ func _make_game_card(g: Dictionary) -> Control:
 	body.add_child(meta)
 	var dot := Label.new()
 	dot.text = "●"
-	dot.add_theme_font_size_override("font_size", 8)
+	dot.add_theme_font_size_override("font_size", 9)
 	dot.add_theme_color_override("font_color", ApplePalette.TEAL if available else ApplePalette.LABEL_DIM)
 	meta.add_child(dot)
 	var meta_lbl := Label.new()
 	meta_lbl.text = "2 玩家  ·  策略" if available else "敬请期待  ·  策略"
-	meta_lbl.add_theme_font_size_override("font_size", 11)
+	meta_lbl.add_theme_font_size_override("font_size", 12)
 	meta_lbl.add_theme_color_override("font_color", ApplePalette.LABEL_TERTIARY)
 	meta.add_child(meta_lbl)
 	if available:
 		var cta := Label.new()
 		cta.text = "点击选择  →" if id != _selected_id else "已选定  ✓"
-		cta.add_theme_font_size_override("font_size", 11)
+		cta.add_theme_font_size_override("font_size", 13)
 		cta.add_theme_color_override("font_color", ApplePalette.GOLD if id != _selected_id else ApplePalette.GOLD_BRIGHT)
 		cta.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cta.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -446,7 +454,7 @@ func _make_game_card(g: Dictionary) -> Control:
 			if id != _selected_id:
 				var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 				tw.tween_property(card, "position:y", card.position.y - 3, 0.18)
-				tw.parallel().tween_property(card, "scale", Vector2(1.015, 1.015), 0.18)
+				tw.parallel().tween_property(card, "scale", Vector2(1.012, 1.012), 0.18)
 		)
 		card.mouse_exited.connect(func() -> void:
 			var tw2 := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
@@ -479,7 +487,7 @@ func _cover_sub(id: String) -> String:
 
 func _game_desc(id: String, available: bool) -> String:
 	match id:
-		"xiangqi": return "中国象棋 · 完整规则与 AI，支持 LAN 对战与将军高亮。" if available else ""
+		"xiangqi": return "中国象棋 · 完整规则与 AI，支持 LAN 对战与将军高亮。长按拖动更好玩。" if available else ""
 		"chess_placeholder": return "国际象棋正在打磨中，敬请期待收藏级棋盘与大师 AI。"
 		"go_placeholder": return "围棋 19 路棋盘与定式库筹备中，为长考而生。"
 		_: return "" if not available else "即将上线"
@@ -487,6 +495,7 @@ func _game_desc(id: String, available: bool) -> String:
 func _on_card_input(event: InputEvent, id: String) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_selected_id = id
+		_sfx("select")
 		_update_selection_visuals()
 		_update_hint()
 		var card: Control = _card_nodes.get(id, null)
@@ -495,13 +504,19 @@ func _on_card_input(event: InputEvent, id: String) -> void:
 			card.scale = Vector2(0.98, 0.98)
 			tw.tween_property(card, "scale", Vector2.ONE, 0.22)
 		accept_event()
+	elif event is InputEventScreenTouch and event.pressed:
+		_selected_id = id
+		_sfx("select")
+		_update_selection_visuals()
+		_update_hint()
+		accept_event()
 
 func _update_selection_visuals() -> void:
 	for id in _card_nodes.keys():
 		var card: Panel = _card_nodes[id] as Panel
 		if card == null:
 			continue
-		var is_sel: bool = id == _selected_id and _card_nodes.has(id) and GameRegistry.GAMES.get(id, {}).get("status", "") == "available"
+		var is_sel: bool = id == _selected_id and _card_nodes.has(id) and Registry.GAMES.get(id, {}).get("status", "") == "available"
 		var sb := card.get_theme_stylebox("panel")
 		if sb is StyleBoxFlat:
 			var flat: StyleBoxFlat = sb as StyleBoxFlat
@@ -515,18 +530,8 @@ func _update_selection_visuals() -> void:
 				flat.border_color = ApplePalette.SEPARATOR
 				flat.shadow_color = ApplePalette.SHADOW_SOFT
 				flat.shadow_size = 10
-	for id in _card_nodes.keys():
-		var card2: Panel = _card_nodes[id] as Panel
-		if card2 == null:
-			continue
-		pass
 	if _card_nodes.size() > 0:
-		var needs_rebuild: bool = false
-		for id in _card_nodes.keys():
-			needs_rebuild = true
-			break
-		if needs_rebuild:
-			call_deferred("_deferred_rebuild_grid")
+		call_deferred("_deferred_rebuild_grid")
 
 func _deferred_rebuild_grid() -> void:
 	if not is_inside_tree():
@@ -563,13 +568,14 @@ func _update_hint() -> void:
 	var desc: String = g.get("description", "")
 	if desc == "":
 		match _selected_id:
-			"xiangqi": desc = "中国象棋 · 已就绪  ·  支持人机、局域网联机。"
+			"xiangqi": desc = "中国象棋 · 已就绪  ·  支持人机、局域网联机。长按拖动棋子更顺手。"
 			_: desc = ""
 	_set_hint(desc, false)
 
 func _set_hint(text: String, is_error: bool) -> void:
 	_hint.text = text
 	_hint.add_theme_color_override("font_color", ApplePalette.DANGER if is_error else ApplePalette.LABEL_TERTIARY)
+	_hint.add_theme_font_size_override("font_size", 13)
 	if is_error:
 		var tw := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 		_hint.modulate.a = 0.0
@@ -580,17 +586,22 @@ func _enter_game() -> void:
 	var scene: String = g.get("scene", "")
 	if scene == "" or not bool(_game_registry.call("is_available", _selected_id)):
 		_set_hint("该游戏仍在打磨中，敬请期待。", true)
+		_sfx("invalid")
 		return
+	_sfx("tap")
 	_app_state.set("selected_game", _selected_id)
 	get_tree().change_scene_to_file(scene)
 
 func _on_ai() -> void:
+	_sfx("tap")
 	_app_state.call("set_mode", 1)
 	_enter_game()
 
 func _on_create_room() -> void:
+	_sfx("tap")
 	var code: String = _room_manager.create_room(_selected_id)
 	if code == "":
+		_sfx("invalid")
 		return
 	_in_room = true
 	_room_code_label.text = code
@@ -601,6 +612,7 @@ func _on_create_room() -> void:
 	_animate_room_info()
 
 func _on_browse_rooms() -> void:
+	_sfx("tap")
 	_lan_section.visible = not _lan_section.visible
 	if _lan_section.visible:
 		_lan_discovery.start_listening()
@@ -646,7 +658,7 @@ func _make_room_row(info: Dictionary) -> Control:
 	sb.bg_color = Color("#0D1219")
 	sb.corner_radius_top_left = 14; sb.corner_radius_top_right = 14; sb.corner_radius_bottom_right = 14; sb.corner_radius_bottom_left = 14
 	sb.border_color = ApplePalette.SEPARATOR; sb.border_width_left = 1; sb.border_width_top = 1; sb.border_width_right = 1; sb.border_width_bottom = 1
-	sb.content_margin_left = 14; sb.content_margin_top = 10; sb.content_margin_right = 14; sb.content_margin_bottom = 10
+	sb.content_margin_left = 14; sb.content_margin_top = 12; sb.content_margin_right = 14; sb.content_margin_bottom = 12
 	card.add_theme_stylebox_override("panel", sb)
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 12)
@@ -654,16 +666,16 @@ func _make_room_row(info: Dictionary) -> Control:
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(hbox)
 	var avatar := Panel.new()
-	avatar.custom_minimum_size = Vector2(40, 40)
+	avatar.custom_minimum_size = Vector2(44, 44)
 	var av_sb := StyleBoxFlat.new()
 	av_sb.bg_color = Color("#1A2332")
-	av_sb.corner_radius_top_left = 20; av_sb.corner_radius_top_right = 20; av_sb.corner_radius_bottom_right = 20; av_sb.corner_radius_bottom_left = 20
+	av_sb.corner_radius_top_left = 22; av_sb.corner_radius_top_right = 22; av_sb.corner_radius_bottom_right = 22; av_sb.corner_radius_bottom_left = 22
 	av_sb.border_color = ApplePalette.HAIRLINE_GOLD; av_sb.border_width_left = 1; av_sb.border_width_top = 1; av_sb.border_width_right = 1; av_sb.border_width_bottom = 1
 	avatar.add_theme_stylebox_override("panel", av_sb)
 	hbox.add_child(avatar)
 	var av_lbl := Label.new()
 	av_lbl.text = str(info.get("host_name", "Host")).substr(0, 1).to_upper()
-	av_lbl.add_theme_font_size_override("font_size", 14)
+	av_lbl.add_theme_font_size_override("font_size", 15)
 	av_lbl.add_theme_color_override("font_color", ApplePalette.GOLD_BRIGHT)
 	av_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	av_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -678,11 +690,11 @@ func _make_room_row(info: Dictionary) -> Control:
 	mid.add_child(top_row)
 	var code_lbl := Label.new()
 	code_lbl.text = info.get("room_code", "--")
-	code_lbl.add_theme_font_size_override("font_size", 16)
+	code_lbl.add_theme_font_size_override("font_size", 17)
 	code_lbl.add_theme_color_override("font_color", ApplePalette.LABEL)
 	top_row.add_child(code_lbl)
 	var live := Panel.new()
-	live.custom_minimum_size = Vector2(0, 18)
+	live.custom_minimum_size = Vector2(0, 20)
 	var live_sb := StyleBoxFlat.new()
 	live_sb.bg_color = Color("#0E1A15")
 	live_sb.corner_radius_top_left = 10; live_sb.corner_radius_top_right = 10; live_sb.corner_radius_bottom_right = 10; live_sb.corner_radius_bottom_left = 10
@@ -692,7 +704,7 @@ func _make_room_row(info: Dictionary) -> Control:
 	top_row.add_child(live)
 	var live_lbl := Label.new()
 	live_lbl.text = "● 可加入"
-	live_lbl.add_theme_font_size_override("font_size", 10)
+	live_lbl.add_theme_font_size_override("font_size", 11)
 	live_lbl.add_theme_color_override("font_color", ApplePalette.TEAL)
 	live_lbl.set_anchors_preset(Control.PRESET_FULL_RECT)
 	live_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -704,16 +716,18 @@ func _make_room_row(info: Dictionary) -> Control:
 	mid.add_child(host_lbl)
 	var btn := Button.new()
 	btn.text = "加入"
-	btn.custom_minimum_size = Vector2(84, 38)
+	btn.custom_minimum_size = Vector2(92, 48)
 	AppleStyle.apply_primary_button(btn)
-	btn.pressed.connect(_on_join_discovered.bind(info))
+	btn.add_theme_font_size_override("font_size", 14)
+	btn.pressed.connect(func() -> void: _sfx("tap"); _on_join_discovered(info))
 	hbox.add_child(btn)
-	card.custom_minimum_size = Vector2(0, 64)
+	card.custom_minimum_size = Vector2(0, 72)
 	return card
 
 func _on_join_discovered(info: Dictionary) -> void:
 	var err: Error = _room_manager.join_room_at(info["ip"], int(info["port"]), info["room_code"])
 	if err != OK:
+		_sfx("invalid")
 		return
 	_on_room_joined(info["room_code"])
 
@@ -721,10 +735,13 @@ func _on_join_code() -> void:
 	var code: String = _room_code_input.text.strip_edges().to_upper()
 	if code == "":
 		_set_hint("请输入 6 位房间码", true)
+		_sfx("invalid")
 		return
+	_sfx("tap")
 	var already_discovered: bool = not _lan_discovery.find_room_by_code(code).is_empty()
 	var err: Error = _room_manager.join_room_by_code(code)
 	if err != OK:
+		_sfx("invalid")
 		return
 	if not already_discovered:
 		_set_hint("正在加入 %s…" % code, false)
@@ -735,7 +752,9 @@ func _on_direct_join() -> void:
 	var ip: String = _direct_ip_input.text.strip_edges()
 	if ip == "":
 		_set_hint("请输入 IP 地址", true)
+		_sfx("invalid")
 		return
+	_sfx("tap")
 	var port: int = 7777
 	if ip.contains(":"):
 		var parts: PackedStringArray = ip.split(":")
@@ -743,6 +762,7 @@ func _on_direct_join() -> void:
 		port = int(parts[1])
 	var err: Error = _room_manager.join_direct(ip, port)
 	if err != OK:
+		_sfx("invalid")
 		return
 	_on_room_joined("%s:%d" % [ip, port])
 
@@ -751,6 +771,7 @@ func _on_room_created(code: String, _port: int) -> void:
 	_room_code_label.text = code
 	_room_info.visible = true
 	_lan_section.visible = true
+	_sfx("select")
 	_animate_room_info()
 
 func _on_room_joined(code: String) -> void:
@@ -759,9 +780,11 @@ func _on_room_joined(code: String) -> void:
 	_room_sub.text = "已加入房间 %s  ·  点击开始对局" % code
 	_room_info.visible = true
 	%BtnStartGame.text = "开始对局"
+	_sfx("select")
 	_animate_room_info()
 
 func _on_leave_room() -> void:
+	_sfx("tap")
 	_room_manager.leave_room()
 	_in_room = false
 	_room_info.visible = false

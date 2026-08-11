@@ -1,8 +1,7 @@
 extends Control
 class_name XiangqiBoard
-## XiangqiBoard — Enterprise luxury rendering + 沉浸式全面屏 + 流畅位移
-## 关键：棋子不再瞬移 — 全程 Tween 位移 + 抬起抛物线 + 阴影呼吸 + 吃子消散，
-## 源/目标格在动画期间均隐藏，仅飞行棋可见。
+## XiangqiBoard — 真·手游级棋盘：占满全面屏、超大棋子、长按拖拽+落点脉冲+非法回弹
+## 0 瞬移：飞行全程抛物线；拖拽长按 220ms 进入，手抬起非法点弹性回弹
 
 signal try_move(from: Vector2i, to: Vector2i)
 signal square_selected(pos: Vector2i)
@@ -14,11 +13,11 @@ var last_move_from: Vector2i = Vector2i(-1, -1)
 var last_move_to: Vector2i = Vector2i(-1, -1)
 var interactable: bool = true
 
-# ── Layout（响应式） ──────────────────────────────────────
-var _cell: float = 56.0
-var _origin: Vector2 = Vector2(28, 28)
-var _board_pad: float = 14.0
-var _frame_thick: float = 14.0
+# ── Layout（为手机最大化） ─────────────────────────────────
+var _cell: float = 52.0
+var _origin: Vector2 = Vector2.ZERO
+var _board_pad: float = 8.0
+var _frame_thick: float = 10.0
 
 # ── Animation state ──────────────────────────────────────
 var _anim_tween: Tween = null
@@ -42,48 +41,76 @@ var _anim_capture_scale: float = 1.0:
 		_anim_capture_scale = v
 		queue_redraw()
 
-# ── Touch drag ───────────────────────────────────────────
+# ── Touch / drag — 长按拖拽 + 回弹 ───────────────────────
 var _drag_from: Vector2i = Vector2i(-1, -1)
 var _drag_pos: Vector2 = Vector2.ZERO
+var _drag_start_pos: Vector2 = Vector2.ZERO
 var _is_dragging: bool = false
+var _pending_drag: bool = false
+var _long_press_time: float = 0.0
+var _long_press_threshold: float = 0.22
 var _drag_threshold: float = 10.0
-var _touch_start_pos: Vector2 = Vector2.ZERO
+var _touch_down_pos: Vector2 = Vector2.ZERO
+var _pending_pos: Vector2i = Vector2i(-1, -1)
+var _bounce_tween: Tween = null
+var _pulse_t: float = 0.0
 
 func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_STOP
-	# 响应式：监听尺寸变化
 	resized.connect(_update_layout)
 	_update_layout()
+	set_process(true)
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		_update_layout()
 
+func _process(delta: float) -> void:
+	_pulse_t += delta * 2.4
+	if _pulse_t > 1000:
+		_pulse_t -= 1000
+	# 长按检测：按住不动 220ms 自动进入拖拽
+	if _pending_drag and not _is_dragging and _drag_from.x != -1:
+		_long_press_time += delta
+		if _long_press_time >= _long_press_threshold:
+			_enter_drag()
+	# 合法点脉冲重绘
+	if legal_targets.size() > 0 or _is_dragging:
+		queue_redraw()
+
 func _update_layout() -> void:
-	# 以可用尺寸自适应 _cell，保证 9×10 完整可见且最大化利用
 	var avail: Vector2 = size
 	if avail.x < 40 or avail.y < 40:
 		avail = custom_minimum_size
 		if avail.x < 40:
-			avail = Vector2(360, 600)
-	# 优先按宽度算，其次高度约束
-	var max_w: float = avail.x - _frame_thick * 2 - _board_pad * 2
-	var max_h: float = avail.y - _frame_thick * 2 - _board_pad * 2
+			# 回退到视口
+			var vp: Vector2 = get_viewport_rect().size
+			if vp.x > 40:
+				avail = vp - Vector2(16, 16)
+			else:
+				avail = Vector2(360, 620)
+	# 手机端：几乎吃满宽度，只留 10px 边距
+	var is_mobile: bool = OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"] or avail.x < 520
+	var h_margin: float = 8.0 if is_mobile else 14.0
+	var v_margin: float = 8.0 if is_mobile else 14.0
+	var max_w: float = max(280, avail.x - _frame_thick * 2 - _board_pad * 2 - h_margin * 2)
+	var max_h: float = max(360, avail.y - _frame_thick * 2 - _board_pad * 2 - v_margin * 2)
 	var cell_by_w: float = max_w / 8.0
 	var cell_by_h: float = max_h / 9.0
 	_cell = min(cell_by_w, cell_by_h)
-	_cell = clamp(_cell, 28.0, 64.0)
-	# 居中 origin
+	# 手机允许更大棋子，桌面也适当放大
+	if is_mobile:
+		_cell = clamp(_cell, 36.0, 84.0)
+	else:
+		_cell = clamp(_cell, 42.0, 72.0)
 	var board_w: float = 8 * _cell
 	var board_h: float = 9 * _cell
 	var total_w: float = board_w + _frame_thick * 2 + _board_pad * 2
 	var total_h: float = board_h + _frame_thick * 2 + _board_pad * 2
-	# 如果 Control 本身比 total 大，则居中；否则紧贴 frame
-	var ox: float = _frame_thick + _board_pad + (max(0, avail.x - total_w) / 2.0)
-	var oy: float = _frame_thick + _board_pad + (max(0, avail.y - total_h) / 2.0)
+	var ox: float = _frame_thick + _board_pad + max(0, (avail.x - total_w) / 2.0)
+	var oy: float = _frame_thick + _board_pad + max(0, (avail.y - total_h) / 2.0)
 	_origin = Vector2(ox, oy)
-	# 同步最小尺寸，避免父容器过度压缩
-	custom_minimum_size = Vector2(total_w, total_h)
+	custom_minimum_size = Vector2(total_w + h_margin * 2, total_h + v_margin * 2)
 	queue_redraw()
 
 func get_board_pixel_size() -> Vector2:
@@ -103,14 +130,12 @@ func set_last_move(f: Vector2i, t: Vector2i) -> void:
 	last_move_to = t
 	queue_redraw()
 
-# ── 核心：流畅位移动画（无瞬移） ──────────────────────────
-
+# ── 核心：流畅飞行（无瞬移） ──────────────────────────────
 func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 0) -> void:
 	if from.x < 0 or to.x < 0:
 		return
 	if _anim_tween and _anim_tween.is_valid():
 		_anim_tween.kill()
-		# 强制结束上一段
 		_anim_from = Vector2i(-1, -1)
 		_anim_to = Vector2i(-1, -1)
 		_anim_piece = 0
@@ -128,24 +153,20 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 	_anim_progress = 0.0
 	_anim_capture_alpha = 1.0
 	_anim_capture_scale = 1.0
-
+	# 取消拖拽
+	_cancel_drag_silent()
 	var dist: float = Vector2(from).distance_to(Vector2(to))
-	# 距离越远越久，基础 260ms + 每格 ~18ms，上限 460ms
-	var dur: float = clamp(0.26 + dist * 0.018, 0.26, 0.46)
-	# 长距离（车/炮跨半盘）略加弹性
-	if dist >= 6:
+	var dur: float = clamp(0.24 + dist * 0.022, 0.26, 0.50)
+	if dist >= 5:
 		dur += 0.04
-
 	_anim_tween = create_tween()
 	_anim_tween.set_parallel(false)
-	# 主位移 — cubic out，丝滑不生硬
 	_anim_tween.tween_property(self, "_anim_progress", 1.0, dur).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	if _anim_is_capture:
-		# 被吃子在后半程消散：先保持，300ms 开始缩小+淡出
 		var cap_tween := create_tween()
-		cap_tween.tween_property(self, "_anim_capture_alpha", 1.0, dur * 0.55)
-		cap_tween.tween_property(self, "_anim_capture_alpha", 0.0, dur * 0.38).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
-		cap_tween.parallel().tween_property(self, "_anim_capture_scale", 0.72, dur * 0.38).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
+		cap_tween.tween_property(self, "_anim_capture_alpha", 1.0, dur * 0.52)
+		cap_tween.tween_property(self, "_anim_capture_alpha", 0.0, dur * 0.40).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+		cap_tween.parallel().tween_property(self, "_anim_capture_scale", 0.68, dur * 0.40).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BACK)
 		_anim_tween.tween_callback(func() -> void:
 			_anim_from = Vector2i(-1, -1)
 			_anim_to = Vector2i(-1, -1)
@@ -166,8 +187,7 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 			queue_redraw()
 		)
 	queue_redraw()
-	# 轻震动（移动端）
-	_try_haptic(18)
+	_try_haptic(16)
 
 func is_animating() -> bool:
 	return _anim_piece != 0
@@ -178,126 +198,253 @@ func board_to_local(bx: int, by: int) -> Vector2:
 func local_to_board(p: Vector2) -> Vector2i:
 	return Vector2i(int(round((p.x - _origin.x) / _cell)), int(round((p.y - _origin.y) / _cell)))
 
-# ── 输入：点击 + 拖拽 ────────────────────────────────────
+# ── 长按拖拽 ─────────────────────────────────────────────
+func _enter_drag() -> void:
+	if _drag_from.x == -1 or _is_dragging:
+		return
+	_is_dragging = true
+	_pending_drag = false
+	_drag_pos = _touch_down_pos
+	queue_redraw()
+	var am: Node = get_node_or_null("/root/AudioManager")
+	if am != null and am.has_method("play_pickup"):
+		am.call("play_pickup")
+	_try_haptic(14)
 
+func _cancel_drag_silent() -> void:
+	_is_dragging = false
+	_pending_drag = false
+	_drag_from = Vector2i(-1, -1)
+	_long_press_time = 0.0
+	_pending_pos = Vector2i(-1, -1)
+
+func _do_bounce_back() -> void:
+	# 非法落点：弹性回弹到起点 + 震动 + 音效
+	var start: Vector2 = board_to_local(_drag_from.x, _drag_from.y)
+	var from: Vector2i = _drag_from
+	_is_dragging = false
+	_pending_drag = false
+	# 用 tween 做回弹
+	if _bounce_tween and _bounce_tween.is_valid():
+		_bounce_tween.kill()
+	_drag_pos = _drag_pos # 当前手指处
+	_bounce_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	_bounce_tween.tween_property(self, "_drag_pos", start, 0.28)
+	_bounce_tween.tween_callback(func() -> void:
+		_drag_from = Vector2i(-1, -1)
+		_long_press_time = 0.0
+		queue_redraw()
+	)
+	var am: Node = get_node_or_null("/root/AudioManager")
+	if am != null:
+		if am.has_method("play_bounce_back"):
+			am.call("play_bounce_back")
+		elif am.has_method("play_invalid"):
+			am.call("play_invalid")
+	_try_haptic(36)
+	queue_redraw()
+
+# ── 输入 ─────────────────────────────────────────────────
 func _gui_input(event: InputEvent) -> void:
-	if not interactable:
-		return
-	if _anim_piece != 0:
+	if not interactable or _anim_piece != 0:
+		# 飞行时屏蔽输入
+		if event is InputEventScreenTouch or event is InputEventMouseButton:
+			accept_event()
 		return
 
-	# 触屏/鼠标按下
+	# 触屏按下
 	if event is InputEventScreenTouch:
 		var st: InputEventScreenTouch = event as InputEventScreenTouch
 		if st.pressed:
-			_touch_start_pos = st.position
+			_touch_down_pos = st.position
+			_drag_start_pos = st.position
 			var pos: Vector2i = local_to_board(st.position)
 			if not XiangqiLogic.inside_board(pos.x, pos.y):
 				return
-			# 若点在己方棋子上，进入拖拽预备
-			if board[pos.y][pos.x] != 0 and selected == pos:
+			var piece: int = board[pos.y][pos.x] if pos.y >= 0 and pos.y < 10 and pos.x >= 0 and pos.x < 9 else 0
+			# 若已选中同色棋，准备拖拽
+			if selected.x != -1 and pos == selected and piece != 0:
 				_drag_from = pos
-				_drag_pos = st.position
-				_is_dragging = false
-			elif board[pos.y][pos.x] != 0:
-				# 先选中
+				_pending_drag = true
+				_long_press_time = 0.0
+				_pending_pos = pos
+				# 立即高亮，不等待长按（给即时反馈）
+				queue_redraw()
+			elif piece != 0:
+				# 选中新棋，同时准备长按拖拽
 				square_selected.emit(pos)
+				var am2: Node = get_node_or_null("/root/AudioManager")
+				if am2 != null and am2.has_method("play_select"):
+					am2.call("play_select")
 				_drag_from = pos
-				_drag_pos = st.position
-				_is_dragging = false
+				_pending_drag = true
+				_long_press_time = 0.0
+				_pending_pos = pos
 				_try_haptic(10)
+			else:
+				# 点空地：若已选中则尝试走子（点击走子兼容）
+				if selected.x != -1:
+					for t in legal_targets:
+						if t == pos:
+							try_move.emit(selected, pos)
+							_drag_from = Vector2i(-1, -1)
+							_pending_drag = false
+							queue_redraw()
+							accept_event()
+							return
+					# 点空地取消选中
+					square_selected.emit(Vector2i(-1, -1))
 			accept_event()
 		else:
 			# 抬起
+			var release_pos: Vector2 = st.position
 			if _is_dragging and _drag_from.x != -1:
-				var drop: Vector2i = local_to_board(st.position)
+				var drop: Vector2i = local_to_board(release_pos)
+				var valid: bool = false
 				if XiangqiLogic.inside_board(drop.x, drop.y):
 					for t in legal_targets:
 						if t == drop:
-							try_move.emit(_drag_from, drop)
-							_drag_from = Vector2i(-1, -1)
-							_is_dragging = false
-							accept_event()
-							return
-				# 未落在合法点则视为选中
-				_drag_from = Vector2i(-1, -1)
-			_is_dragging = false
-			_drag_from = Vector2i(-1, -1)
+							valid = true
+							break
+				if valid:
+					# 成功落子：保留 drag_from 直到飞行开始（animate_move 会清除）
+					var from_copy: Vector2i = _drag_from
+					_is_dragging = false
+					_pending_drag = false
+					_drag_from = Vector2i(-1, -1)
+					_long_press_time = 0.0
+					try_move.emit(from_copy, drop)
+				else:
+					_do_bounce_back()
+				accept_event()
+				return
+			# 非拖拽的短按抬起：若按住时间短且移动小，视为点击（已在按下时处理选中/走子）
+			# 若 pending 但未进入 dragging，取消 pending 并视为点击完成
+			if _pending_drag:
+				# 轻点未长按：保持选中状态，不回弹
+				_pending_drag = false
+				_long_press_time = 0.0
+				# _drag_from 保留为选中，便于点击走子
+				if _is_dragging:
+					_is_dragging = false
 			queue_redraw()
 			accept_event()
 		return
 
 	if event is InputEventScreenDrag:
 		var sd: InputEventScreenDrag = event as InputEventScreenDrag
-		if _drag_from.x != -1:
-			if not _is_dragging and sd.position.distance_to(_touch_start_pos) > _drag_threshold:
-				_is_dragging = true
-				queue_redraw()
-			if _is_dragging:
+		if _drag_from.x == -1:
+			return
+		var moved: float = sd.position.distance_to(_drag_start_pos)
+		if _pending_drag and not _is_dragging:
+			if moved > 14:
+				# 轻微移动即进入拖拽（无需等长按）—— 更顺手
+				if moved > _drag_threshold:
+					_enter_drag()
 				_drag_pos = sd.position
 				queue_redraw()
 				accept_event()
+				return
+			# 未超时但位置微动，保持 pending
+		if _is_dragging:
+			_drag_pos = sd.position
+			queue_redraw()
+			accept_event()
+		elif _pending_drag:
+			_drag_pos = sd.position
 		return
 
+	# 鼠标（桌面/模拟器）
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var pos: Vector2i = local_to_board(event.position)
-		if not XiangqiLogic.inside_board(pos.x, pos.y):
+		_touch_down_pos = event.position
+		_drag_start_pos = event.position
+		var pos2: Vector2i = local_to_board(event.position)
+		if not XiangqiLogic.inside_board(pos2.x, pos2.y):
 			return
+		# 选中态下点合法落点直接走子
 		if selected.x != -1:
 			for t in legal_targets:
-				if t == pos:
-					try_move.emit(selected, pos)
-					_try_haptic(14)
+				if t == pos2:
+					try_move.emit(selected, pos2)
+					var am3: Node = get_node_or_null("/root/AudioManager")
+					if am3 != null and am3.has_method("play_select"):
+						am3.call("play_select")
 					return
-			var p: int = board[pos.y][pos.x]
-			if p != 0:
-				square_selected.emit(pos)
-				_try_haptic(10)
-			else:
-				square_selected.emit(Vector2i(-1, -1))
+		var p2: int = board[pos2.y][pos2.x] if pos2.y >= 0 and pos2.y < 10 and pos2.x >= 0 and pos2.x < 9 else 0
+		if p2 != 0:
+			square_selected.emit(pos2)
+			_drag_from = pos2
+			_pending_drag = true
+			_long_press_time = 0.0
+			_is_dragging = false
+			var am4: Node = get_node_or_null("/root/AudioManager")
+			if am4 != null and am4.has_method("play_select"):
+				am4.call("play_select")
+			_try_haptic(10)
 		else:
-			square_selected.emit(pos)
-			if board[pos.y][pos.x] != 0:
-				_try_haptic(10)
+			square_selected.emit(Vector2i(-1, -1))
+			_drag_from = Vector2i(-1, -1)
 		accept_event()
+		return
+
+	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if _is_dragging and _drag_from.x != -1:
+			var drop2: Vector2i = local_to_board(event.position)
+			var ok: bool = false
+			for t in legal_targets:
+				if t == drop2:
+					ok = true
+					break
+			if ok:
+				var fc: Vector2i = _drag_from
+				_is_dragging = false
+				_pending_drag = false
+				_drag_from = Vector2i(-1, -1)
+				try_move.emit(fc, drop2)
+			else:
+				_do_bounce_back()
+			accept_event()
+			return
+		# 抬起时若 pending，取消
+		if _pending_drag:
+			_pending_drag = false
+			_long_press_time = 0.0
+		return
 
 	if event is InputEventMouseMotion and (event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT:
-		if _drag_from.x != -1:
-			var mp: Vector2 = event.position
-			if not _is_dragging and mp.distance_to(_touch_start_pos) > _drag_threshold:
-				_is_dragging = true
-			if _is_dragging:
-				_drag_pos = mp
-				queue_redraw()
-				accept_event()
+		if _drag_from.x == -1:
+			return
+		var mp: Vector2 = event.position
+		if not _is_dragging and _pending_drag:
+			if mp.distance_to(_drag_start_pos) > _drag_threshold:
+				_enter_drag()
+		if _is_dragging:
+			_drag_pos = mp
+			queue_redraw()
+			accept_event()
 
 func _try_haptic(ms: int) -> void:
-	if OS.has_feature("mobile") or DisplayServer.get_name() == "Android" or DisplayServer.get_name() == "iOS":
-		# Godot 4.3+ 支持 Input.vibrate_handheld；旧版用 OS.vibrate
+	if OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"]:
 		if Input.has_method("vibrate_handheld"):
 			Input.vibrate_handheld(ms)
-		else:
-			# 容错
-			pass
 
 # ── 绘制 ─────────────────────────────────────────────────
-
 func _draw() -> void:
 	var outer := Rect2(Vector2.ZERO, size)
-	# 外框 — 胡桃木，圆角随 _cell 微调
-	var r_outer: float = clamp(_cell * 0.38, 14, 22)
+	var r_outer: float = clamp(_cell * 0.42, 16, 24)
 	_draw_rounded_rect(outer, r_outer, ApplePalette.BOARD_FRAME)
 	_draw_rounded_rect_outline(outer.grow(-1), r_outer, ApplePalette.BOARD_FRAME_HIGHLIGHT, 1.0)
-	draw_line(Vector2(_frame_thick, _frame_thick - 6), Vector2(size.x - _frame_thick, _frame_thick - 6), Color("#D4A574", 0.10), 1.0)
+	# 顶部高光
+	draw_line(Vector2(_frame_thick, _frame_thick - 5), Vector2(size.x - _frame_thick, _frame_thick - 5), Color("#D4A574", 0.12), 1.0)
 	# 羊皮纸
 	var paper := Rect2(Vector2(_frame_thick, _frame_thick), size - Vector2(_frame_thick * 2, _frame_thick * 2))
 	_draw_rounded_rect(paper, r_outer - 6, ApplePalette.BOARD_PAPER)
-	# 纸纹
+	# 细腻纸纹
 	var grain: Color = Color("#8C6A3A", 0.055)
 	for gy in range(7):
-		var yy: float = paper.position.y + paper.size.y * (0.14 + gy * 0.12)
-		draw_line(Vector2(paper.position.x + 10, yy), Vector2(paper.position.x + paper.size.x - 10, yy + 0.6), grain, 1.0)
-	draw_line(paper.position + Vector2(0, 1), paper.position + Vector2(paper.size.x, 1), Color("#000000", 0.06), 1.0)
+		var yy: float = paper.position.y + paper.size.y * (0.12 + gy * 0.12)
+		draw_line(Vector2(paper.position.x + 12, yy), Vector2(paper.position.x + paper.size.x - 12, yy + 0.7), grain, 1.0)
+	draw_line(paper.position + Vector2(0, 1), paper.position + Vector2(paper.size.x, 1), Color("#000000", 0.07), 1.0)
 
 	# 网格
 	var river_top: float = _origin.y + 4 * _cell
@@ -308,57 +455,71 @@ func _draw() -> void:
 	var line_soft: Color = ApplePalette.BOARD_LINE_SOFT
 	for y in range(10):
 		var yy2: float = _origin.y + y * _cell
-		draw_line(Vector2(_origin.x, yy2), Vector2(_origin.x + 8 * _cell, yy2), line_col, 1.2 if y == 0 or y == 9 else 1.0)
+		draw_line(Vector2(_origin.x, yy2), Vector2(_origin.x + 8 * _cell, yy2), line_col, 1.4 if y == 0 or y == 9 else 1.1)
 	for x in range(9):
 		var xx: float = _origin.x + x * _cell
 		if x == 0 or x == 8:
-			draw_line(Vector2(xx, _origin.y), Vector2(xx, _origin.y + 9 * _cell), line_col, 1.2)
+			draw_line(Vector2(xx, _origin.y), Vector2(xx, _origin.y + 9 * _cell), line_col, 1.4)
 		else:
-			draw_line(Vector2(xx, _origin.y), Vector2(xx, river_top), line_soft, 1.0)
-			draw_line(Vector2(xx, river_bot), Vector2(xx, _origin.y + 9 * _cell), line_soft, 1.0)
-	var palace_col: Color = Color("#2B1E0F", 0.62)
+			draw_line(Vector2(xx, _origin.y), Vector2(xx, river_top), line_soft, 1.1)
+			draw_line(Vector2(xx, river_bot), Vector2(xx, _origin.y + 9 * _cell), line_soft, 1.1)
+	var palace_col: Color = Color("#2B1E0F", 0.68)
 	for seg in [[Vector2i(3, 0), Vector2i(5, 2)], [Vector2i(5, 0), Vector2i(3, 2)], [Vector2i(3, 7), Vector2i(5, 9)], [Vector2i(5, 7), Vector2i(3, 9)]]:
 		var a: Vector2 = board_to_local(seg[0].x, seg[0].y)
 		var b2: Vector2 = board_to_local(seg[1].x, seg[1].y)
-		draw_line(a, b2, palace_col, 1.2)
+		draw_line(a, b2, palace_col, 1.4)
+	# 隹角标
 	for p in [[0, 2], [2, 2], [6, 2], [8, 2], [0, 7], [2, 7], [6, 7], [8, 7], [1, 3], [7, 3]]:
 		_draw_corner_marks(p[0], p[1])
 	var font: Font = ThemeDB.fallback_font
-	var river_fs: int = int(clamp(_cell * 0.28, 12, 16))
-	draw_string(font, Vector2(_origin.x + 1.45 * _cell, (river_top + river_bot) / 2 + 5), "楚  河", HORIZONTAL_ALIGNMENT_LEFT, -1, river_fs, ApplePalette.BOARD_RIVER_INK)
-	draw_string(font, Vector2(_origin.x + 5.35 * _cell, (river_top + river_bot) / 2 + 5), "汉  界", HORIZONTAL_ALIGNMENT_LEFT, -1, river_fs, ApplePalette.BOARD_RIVER_INK)
-	draw_string(font, Vector2(_origin.x + 3.05 * _cell, (river_top + river_bot) / 2 + 4), "·", HORIZONTAL_ALIGNMENT_LEFT, -1, int(river_fs * 0.65), Color("#2B1E0F", 0.22))
+	var river_fs: int = int(clamp(_cell * 0.32, 13, 20))
+	draw_string(font, Vector2(_origin.x + 1.15 * _cell, (river_top + river_bot) / 2 + 6), "楚  河", HORIZONTAL_ALIGNMENT_LEFT, -1, river_fs, ApplePalette.BOARD_RIVER_INK)
+	draw_string(font, Vector2(_origin.x + 5.05 * _cell, (river_top + river_bot) / 2 + 6), "汉  界", HORIZONTAL_ALIGNMENT_LEFT, -1, river_fs, ApplePalette.BOARD_RIVER_INK)
+	draw_string(font, Vector2(_origin.x + 3.85 * _cell, (river_top + river_bot) / 2 + 4), "·", HORIZONTAL_ALIGNMENT_LEFT, -1, int(river_fs * 0.70), Color("#2B1E0F", 0.24))
 
-	# 高亮：上一步（飞行中淡化）
-	var last_alpha: float = 1.0 - _anim_progress * 0.5 if _anim_piece != 0 else 1.0
+	# 上一步淡化
+	var last_alpha: float = 1.0 - _anim_progress * 0.55 if _anim_piece != 0 else 1.0
 	if last_move_from.x != -1:
-		_highlight_square(last_move_from, Color("#D4A574", 0.14 * last_alpha), 12)
+		_highlight_square(last_move_from, Color("#D4A574", 0.16 * last_alpha), 12)
 	if last_move_to.x != -1 and not (_anim_piece != 0 and _anim_to == last_move_to):
-		_highlight_square(last_move_to, Color("#D4A574", 0.20 * last_alpha), 12)
-	# 选中
+		_highlight_square(last_move_to, Color("#D4A574", 0.22 * last_alpha), 12)
+	# 选中高光：拖拽中隐藏原位高光，改为拖拽态
 	if selected.x != -1 and not (_is_dragging and selected == _drag_from):
-		_highlight_square(selected, Color("#2EC4B6", 0.08), 12)
-		_draw_square_ring(selected, ApplePalette.GOLD, 2.0, 12)
-		_draw_square_ring(selected, Color("#D4A574", 0.18), 6.0, 12)
-	# 合法目标
+		_highlight_square(selected, Color("#2EC4B6", 0.10), 12)
+		_draw_square_ring(selected, ApplePalette.GOLD, 2.2, 12)
+		_draw_square_ring(selected, Color("#D4A574", 0.22), 7.0, 12)
+	# 合法落点 — 手机端超大、脉冲、带标签
 	for t in legal_targets:
-		# 拖拽中目标脉动
 		var c: Vector2 = board_to_local(t.x, t.y)
-		var is_capture: bool = board[t.y][t.x] != 0
+		var is_capture: bool = false
+		if t.y >= 0 and t.y < 10 and t.x >= 0 and t.x < 9 and not board.is_empty():
+			is_capture = board[t.y][t.x] != 0
+		# 脉冲缩放 1.0..1.12
+		var pulse: float = 1.0 + sin(_pulse_t * 3.0) * 0.08
+		var dragging_dim: float = 0.96 if _is_dragging else 1.0
 		if is_capture:
-			draw_arc(c, 20, 0, TAU, 32, Color("#E8583A", 0.90), 2.4)
-			draw_arc(c, 17, 0, TAU, 32, Color("#D4A574", 0.42), 1.0)
-			draw_circle(c, 5, Color("#E8583A", 0.16))
+			# 吃子：赤环+金内环+跳动
+			var r_out: float = (20 + sin(_pulse_t * 4.0) * 1.2) * (_cell / 52.0)
+			draw_arc(c, r_out, 0, TAU, 32, Color("#E8583A", 0.95 * dragging_dim), 3.0)
+			draw_arc(c, r_out - 3, 0, TAU, 32, Color("#D4A574", 0.50), 1.2)
+			draw_circle(c, 6 * (_cell / 52.0), Color("#E8583A", 0.20))
 		else:
-			draw_circle(c, 9, Color("#2EC4B6", 0.13))
-			draw_circle(c, 7, Color("#2EC4B6", 0.92))
-			draw_circle(c, 3.4, Color.WHITE)
-			draw_arc(c, 7, 0, TAU, 24, Color("#D4A574", 0.32), 1.0)
+			# 空点：teal 实心+白芯+鎏金外晕，拖拽时更大更亮
+			var s: float = (_cell / 52.0) * pulse
+			var base_r: float = 12 if _is_dragging else 10
+			var inner_r: float = 5.2 if _is_dragging else 4.2
+			var halo_r: float = base_r + 3 if _is_dragging else base_r + 1.2
+			draw_circle(c, halo_r * s, Color("#D4A574", 0.18 if _is_dragging else 0.10))
+			draw_circle(c, base_r * s, Color("#2EC4B6", 0.22 * dragging_dim))
+			draw_circle(c, (base_r - 1.5) * s, Color("#2EC4B6", 0.96))
+			draw_circle(c, inner_r * s, Color.WHITE)
+			if _is_dragging:
+				draw_arc(c, base_r * s, 0, TAU, 24, Color.WHITE, 1.0)
 
 	if board.is_empty():
 		return
 
-	# 棋子：静止棋（动画期间隐藏源与目标）
+	# 静止棋：飞行/拖拽期间隐藏源与目标
 	for y in range(10):
 		for x in range(9):
 			var p: int = board[y][x]
@@ -366,69 +527,82 @@ func _draw() -> void:
 				continue
 			var cur: Vector2i = Vector2i(x, y)
 			if _anim_piece != 0:
-				if cur == _anim_from:
+				if cur == _anim_from or cur == _anim_to:
 					continue
-				if cur == _anim_to:
-					continue
-			# 拖拽中的选中棋隐藏（由拖拽层绘制）
 			if _is_dragging and cur == _drag_from:
 				continue
 			_draw_piece(board_to_local(x, y), p, font, 1.0, 1.0, 0.0)
 
-	# 被吃子消散（在目标点）
+	# 被吃子消散
 	if _anim_is_capture and _anim_captured != 0 and _anim_progress > 0.0:
 		var cap_pos: Vector2 = board_to_local(_anim_to.x, _anim_to.y)
-		# 轻微上浮消散
-		var lift: float = -6 * ease(_anim_progress, 0.45)
+		var lift: float = -8 * ease(_anim_progress, 0.45)
 		_draw_piece(cap_pos + Vector2(0, lift), _anim_captured, font, _anim_capture_alpha, _anim_capture_scale, 0.0)
 
-	# 飞行棋 — 抛物线抬起 + 阴影呼吸 + 轻微缩放
+	# 飞行棋 — 抛物线 + 缩放 + 阴影
 	if _anim_piece != 0 and _anim_from.x != -1 and _anim_to.x != -1 and _anim_progress > 0.0:
 		var t: float = _anim_progress
 		var fly: Vector2 = _anim_pos_from.lerp(_anim_pos_to, t)
-		# 抛物线 lift：sin(π*t) * 高度，高度随距离
 		var dist2: float = _anim_pos_from.distance_to(_anim_pos_to)
-		var lift_h: float = clamp(dist2 * 0.12, 10, 26)
+		var lift_h: float = clamp(dist2 * 0.13, 12, 32)
 		fly.y -= sin(t * PI) * lift_h
-		var scale: float = 1.0 + sin(t * PI) * 0.08
-		var shadow_alpha: float = lerp(0.26, 0.10, sin(t * PI))
+		var scale: float = 1.0 + sin(t * PI) * 0.10
+		var shadow_alpha: float = lerp(0.28, 0.08, sin(t * PI))
 		var lift_for_shadow: float = sin(t * PI) * lift_h
-		# 阴影在地面，跟随但不抬起
 		var ground: Vector2 = _anim_pos_from.lerp(_anim_pos_to, t)
 		_draw_piece_shadow(ground + Vector2(0, 3 + lift_for_shadow * 0.18), shadow_alpha)
 		_draw_piece(fly, _anim_piece, font, 1.0, scale, lift_for_shadow)
 
-	# 拖拽棋 — 跟手
+	# 拖拽棋 — 手指上方悬浮，放大+投影+轨迹虚影
 	if _is_dragging and _drag_from.x != -1:
-		var drag_piece: int = board[_drag_from.y][_drag_from.x] if board[_drag_from.y][_drag_from.x] != 0 else 0
+		var drag_piece: int = 0
+		if _drag_from.y >= 0 and _drag_from.y < 10 and _drag_from.x >= 0 and _drag_from.x < 9:
+			drag_piece = board[_drag_from.y][_drag_from.x]
 		if drag_piece == 0 and _anim_piece != 0 and _drag_from == _anim_from:
 			drag_piece = _anim_piece
 		if drag_piece != 0:
-			_draw_piece_shadow(_drag_pos + Vector2(0, 8), 0.18)
-			_draw_piece(_drag_pos + Vector2(0, -14), drag_piece, font, 1.0, 1.06, 14)
+			# 轨迹虚影：起点到手指的淡线
+			var src: Vector2 = board_to_local(_drag_from.x, _drag_from.y)
+			draw_dashed_line(src, _drag_pos + Vector2(0, -30), Color("#D4A574", 0.22), 2.0, 6.0)
+			_draw_piece_shadow(_drag_pos + Vector2(0, 10), 0.20)
+			_draw_piece(_drag_pos + Vector2(0, -30), drag_piece, font, 1.0, 1.14, 18)
+			# 手指处白点
+			draw_circle(_drag_pos, 4, Color.WHITE)
+			draw_circle(_drag_pos, 6, Color("#D4A574", 0.35))
+	# 未进入拖拽但 pending：起点轻微上浮提示可拖动
+	elif _pending_drag and _drag_from.x != -1 and not _is_dragging:
+		# 给一点点呼吸提示
+		pass
+
+	# 拖拽时的 bounce 回弹：用 _drag_pos 绘制悬浮棋，_bounce_tween 会自动插值
+	if _bounce_tween and _bounce_tween.is_valid() and _drag_from.x != -1:
+		# 由 _drag_pos  tween 驱动，已在拖拽分支处理，回弹时 _is_dragging 已 false，此分支单独画
+		var bp: int = board[_drag_from.y][_drag_from.x] if _drag_from.y >= 0 and _drag_from.y < 10 and _drag_from.x >= 0 and _drag_from.x < 9 else 0
+		if bp != 0:
+			_draw_piece_shadow(_drag_pos + Vector2(0, 8), 0.16)
+			_draw_piece(_drag_pos + Vector2(0, -8), bp, font, 1.0, 1.04, 6)
 
 func _draw_piece_shadow(center: Vector2, alpha: float) -> void:
-	draw_circle(center, 22, Color("#000000", alpha * 0.55))
-	draw_circle(center + Vector2(2, 1), 14, Color("#000000", alpha * 0.22))
+	draw_circle(center, _cell * 0.42, Color("#000000", alpha * 0.55))
+	draw_circle(center + Vector2(2, 1), _cell * 0.28, Color("#000000", alpha * 0.22))
 
 func _draw_corner_marks(bx: int, by: int) -> void:
 	var c: Vector2 = board_to_local(bx, by)
-	var s: float = clamp(_cell * 0.12, 6, 8)
-	var gap: float = clamp(_cell * 0.06, 3, 4.2)
-	var col: Color = Color("#2B1E0F", 0.36)
+	var s: float = clamp(_cell * 0.14, 7, 10)
+	var gap: float = clamp(_cell * 0.07, 3.5, 5)
+	var col: Color = Color("#2B1E0F", 0.40)
 	var dirs: Array = [[-1, -1], [1, -1], [-1, 1], [1, 1]]
 	for d in dirs:
 		var dx: int = d[0]; var dy: int = d[1]
 		var px: float = c.x + dx * gap
 		var py: float = c.y + dy * gap
-		draw_line(Vector2(px, py), Vector2(px + dx * s, py), col, 1.0)
-		draw_line(Vector2(px, py), Vector2(px, py + dy * s), col, 1.0)
+		draw_line(Vector2(px, py), Vector2(px + dx * s, py), col, 1.2)
+		draw_line(Vector2(px, py), Vector2(px, py + dy * s), col, 1.2)
 
 func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale: float = 1.0, lift: float = 0.0) -> void:
 	var is_red: bool = p > 0
-	var r: float = 22 * scale
-	var r_in: float = 18.8 * scale
-	# 已在外层绘制阴影的飞行/拖拽情况，常规棋子仍需阴影
+	var r: float = _cell * 0.46 * scale
+	var r_in: float = _cell * 0.39 * scale
 	if lift == 0.0 and scale == 1.0:
 		draw_circle(center + Vector2(0, 3), r, Color("#000000", 0.24 * alpha))
 		draw_circle(center + Vector2(0, 1.2), r, Color("#000000", 0.10 * alpha))
@@ -437,19 +611,19 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 	ring_col.a *= alpha
 	ring_highlight.a *= alpha
 	draw_circle(center, r, ring_col)
-	draw_arc(center + Vector2(-0.6 * scale, -0.8 * scale), r - 1 * scale, 1.15 * PI, 1.85 * PI, 20, ring_highlight, 1.2 * scale)
+	draw_arc(center + Vector2(-0.6 * scale, -0.8 * scale), r - 1 * scale, 1.15 * PI, 1.85 * PI, 20, ring_highlight, 1.3 * scale)
 	var inlay: Color = ApplePalette.PIECE_RED_INLAY if is_red else ApplePalette.PIECE_BLACK_INLAY
 	inlay.a *= alpha
 	draw_circle(center, r_in, inlay)
 	var gold: Color = ApplePalette.PIECE_GOLD_RING
 	gold.a *= alpha
 	draw_arc(center, r_in, 0, TAU, 32, gold, 1.0 * scale)
-	draw_arc(center, 15.6 * scale, 0, TAU, 32, Color("#000000", 0.05 * alpha), 1.0 * scale)
-	draw_circle(center + Vector2(-5 * scale, -6 * scale), 5 * scale, Color("#FFFFFF", 0.09 * alpha))
+	draw_arc(center, r * 0.78, 0, TAU, 32, Color("#000000", 0.05 * alpha), 1.0 * scale)
+	draw_circle(center + Vector2(-_cell * 0.10, -_cell * 0.12), _cell * 0.10, Color("#FFFFFF", 0.09 * alpha))
 	var label: String = _piece_label(p)
-	var fs: int = int(20 * scale)
-	if fs < 12:
-		fs = 12
+	var fs: int = int(_cell * 0.42 * scale)
+	if fs < 13:
+		fs = 13
 	var disc: Color = ApplePalette.PIECE_RED if is_red else ApplePalette.PIECE_BLACK
 	disc.a *= alpha
 	var ts: Vector2 = font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, fs)
@@ -459,12 +633,13 @@ func _draw_piece(center: Vector2, p: int, font: Font, alpha: float = 1.0, scale:
 
 func _highlight_square(pos: Vector2i, col: Color, r: float) -> void:
 	var c: Vector2 = board_to_local(pos.x, pos.y)
-	var rect := Rect2(c - Vector2(23, 23) * (_cell / 56.0), Vector2(46, 46) * (_cell / 56.0))
-	_draw_rounded_rect(rect, r * (_cell / 56.0), col)
+	var s: float = _cell / 52.0
+	var rect := Rect2(c - Vector2(23, 23) * s, Vector2(46, 46) * s)
+	_draw_rounded_rect(rect, r * s, col)
 
 func _draw_square_ring(pos: Vector2i, col: Color, w: float, r: float) -> void:
 	var c: Vector2 = board_to_local(pos.x, pos.y)
-	var s: float = _cell / 56.0
+	var s: float = _cell / 52.0
 	var rect := Rect2(c - Vector2(23, 23) * s, Vector2(46, 46) * s)
 	_draw_rounded_rect_outline(rect, r * s, col, w * s)
 
