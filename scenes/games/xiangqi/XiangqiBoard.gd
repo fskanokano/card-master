@@ -89,19 +89,22 @@ func _update_layout() -> void:
 				avail = vp - Vector2(16, 16)
 			else:
 				avail = Vector2(360, 620)
-	# 手机端：几乎吃满宽度，只留 10px 边距
+	# 手机端优先放大，但必须为棋子最大视觉半径预留安全边距。
+	# 棋子静止约 0.46 cell，拖拽会放大到 1.14 倍，因此按 0.53 cell 计算。
 	var is_mobile: bool = OS.has_feature("mobile") or DisplayServer.get_name() in ["Android", "iOS"] or avail.x < 520
-	var h_margin: float = 4.0 if is_mobile else 14.0
-	var v_margin: float = 6.0 if is_mobile else 14.0
-	var max_w: float = max(280, avail.x - _frame_thick * 2 - _board_pad * 2 - h_margin * 2)
-	var max_h: float = max(360, avail.y - _frame_thick * 2 - _board_pad * 2 - v_margin * 2)
-	var cell_by_w: float = max_w / 8.0
-	var cell_by_h: float = max_h / 9.0
+	var h_margin: float = 8.0 if is_mobile else 14.0
+	var v_margin: float = 8.0 if is_mobile else 14.0
+	var edge_clearance: float = 4.0
+	var safe_w: float = max(280, avail.x - 2.0 * (_frame_thick + _board_pad + edge_clearance))
+	var safe_h: float = max(360, avail.y - 2.0 * (_frame_thick + _board_pad + edge_clearance))
+	# 8/9 是相邻交叉点跨度，额外的 1.06/1.06 是左右/上下两侧棋子半径。
+	var cell_by_w: float = safe_w / 9.06
+	var cell_by_h: float = safe_h / 10.06
 	_cell = min(cell_by_w, cell_by_h)
 	# 手机允许更大棋子，桌面也适当放大
 	if is_mobile:
 		# 手机棋盘优先按宽度放大，避免被桌面端的保守上限压缩
-		_cell = clamp(_cell, 42.0, 110.0)
+		_cell = clamp(_cell, 30.0, 110.0)
 	else:
 		_cell = clamp(_cell, 42.0, 72.0)
 	var board_w: float = 8 * _cell
