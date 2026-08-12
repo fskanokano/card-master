@@ -1,5 +1,6 @@
 extends Node3D
 class_name XiangqiBoard3D
+const XiangqiPiece3DRef = preload("res://scenes/games/xiangqi/XiangqiPiece3D.gd")
 ## XiangqiBoard3D -- 真·3D手游棋盘
 ## 保留与 XiangqiGame.gd 完全兼容的信号/方法契约，内部用 Node3D + Camera3D + 射线拾取 + XiangqiPiece3D 实现
 
@@ -36,7 +37,7 @@ var _selection_markers: Node3D = null
 
 # ── 棋子映射 pos -> XiangqiPiece3D ──
 var _pieces: Dictionary = {} # Vector2i -> XiangqiPiece3D
-var _piece_nodes: Array[XiangqiPiece3D] = []
+var _piece_nodes: Array = []
 
 # -- 动画状态 --
 var _anim_tween: Tween = null
@@ -77,9 +78,6 @@ func _ready() -> void:
 	set_process_unhandled_input(true)
 	# Ensure %XiangqiBoard is resolvable (Node3D with unique_name)
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED:
-		_update_layout()
 
 func _process(delta: float) -> void:
 	_pulse_t += delta * 2.4
@@ -93,7 +91,7 @@ func _process(delta: float) -> void:
 	if legal_targets.size() > 0 or _is_dragging:
 		_update_marker_pulse()
 	if _is_dragging:
-		queue_redraw() if has_method("queue_redraw") else pass
+		pass
 
 # ── 3D 场景构建 ──
 func _build_3d_scene() -> void:
@@ -447,7 +445,7 @@ func cancel_animation() -> void:
 func cancel_gesture() -> void:
 	# Clear highlight of dragged piece if any (valid-drop paths previously left it on)
 	if _drag_from.x != -1:
-		var dp: XiangqiPiece3D = _pieces.get(_drag_from, null)
+		var dp = _pieces.get(_drag_from, null)
 		if dp != null and is_instance_valid(dp):
 			dp.set_highlight(false)
 	_is_dragging = false
@@ -458,7 +456,9 @@ func cancel_gesture() -> void:
 
 func _update_layout() -> void:
 	# Compat: called from XiangqiGame._on_viewport_resized
-	var vp: Vector2 = get_viewport_rect().size if get_viewport() != null else Vector2(720, 1280)
+	var vp: Vector2 = Vector2(720, 1280)
+	if get_viewport() != null:
+		vp = get_viewport().get_visible_rect().size
 	update_layout(vp)
 
 func update_layout(_stage_size: Vector2) -> void:
@@ -489,7 +489,7 @@ func _sync_pieces() -> void:
 			to_remove.append(pos)
 		else:
 			# 类型或阵营变化则重建
-			var existing: XiangqiPiece3D = _pieces[pos]
+			var existing = _pieces[pos]
 			if not is_instance_valid(existing):
 				to_remove.append(pos)
 				continue
@@ -508,7 +508,7 @@ func _sync_pieces() -> void:
 	for pos in wanted.keys():
 		if _pieces.has(pos):
 			# 仅更新位置（静止同步用瞬移）
-			var ex: XiangqiPiece3D = _pieces[pos]
+			var ex = _pieces[pos]
 			if is_instance_valid(ex):
 				var w: Vector3 = logical_to_world(pos)
 				ex.position = Vector3(w.x, PIECE_Y, w.z)
@@ -516,7 +516,7 @@ func _sync_pieces() -> void:
 		var piece_val: int = wanted[pos]
 		var ptype: int = abs(piece_val)
 		var side: int = XiangqiLogicRef.RED if piece_val > 0 else XiangqiLogicRef.BLACK
-		var piece := XiangqiPiece3D.new()
+		var piece := XiangqiPiece3DRef.new()
 		_pieces_root.add_child(piece)
 		piece.set_meta("piece_type", ptype)
 		piece.set_meta("side", side)
@@ -602,7 +602,7 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 	cancel_gesture()
 	_refresh_markers()
 
-	var mover: XiangqiPiece3D = _pieces.get(from, null)
+	var mover = _pieces.get(from, null)
 	if mover == null or not is_instance_valid(mover):
 		_is_anim = false
 		_refresh_markers()
@@ -616,7 +616,7 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 		dur += 0.04
 	var is_capture: bool = captured != 0
 
-	var victim: XiangqiPiece3D = _pieces.get(to, null) if is_capture else null
+	var victim = _pieces.get(to, null) if is_capture else null
 
 	if victim != null and is_instance_valid(victim):
 		victim.play_death(dur * 0.72)
@@ -631,7 +631,7 @@ func animate_move(from: Vector2i, to: Vector2i, piece: int = 0, captured: int = 
 	var to_v: Vector3 = Vector3(world_to.x, PIECE_Y, world_to.z)
 	var mid_y: float = PIECE_Y + lift_h
 	if is_capture and mover.has_method("_do_impact_flash"):
-		var _flash_mover: XiangqiPiece3D = mover
+		var _flash_mover = mover
 		get_tree().create_timer(dur * 0.42).timeout.connect(func() -> void:
 			if is_instance_valid(_flash_mover):
 				_flash_mover._do_impact_flash(0.12)
@@ -736,7 +736,7 @@ func _unhandled_input(event: InputEvent) -> void:
 							break
 				if valid:
 					var fc: Vector2i = _drag_from
-					var dp2: XiangqiPiece3D = _pieces.get(_drag_from, null)
+					var dp2 = _pieces.get(_drag_from, null)
 					if dp2 != null and is_instance_valid(dp2):
 						dp2.set_highlight(false)
 					_is_dragging = false
@@ -806,7 +806,7 @@ func _unhandled_input(event: InputEvent) -> void:
 						break
 			if ok:
 				var fc2: Vector2i = _drag_from
-				var dp3: XiangqiPiece3D = _pieces.get(_drag_from, null)
+				var dp3 = _pieces.get(_drag_from, null)
 				if dp3 != null and is_instance_valid(dp3):
 					dp3.set_highlight(false)
 				_is_dragging = false
@@ -836,7 +836,7 @@ func _enter_drag() -> void:
 		return
 	_is_dragging = true
 	_pending_drag = false
-	var piece: XiangqiPiece3D = _pieces.get(_drag_from, null)
+	var piece = _pieces.get(_drag_from, null)
 	if piece != null and is_instance_valid(piece):
 		piece.set_highlight(true)
 	var am: Node = get_node_or_null("/root/AudioManager")
@@ -848,7 +848,7 @@ func _update_drag_hover(screen_pos: Vector2) -> void:
 	var sq: Vector2i = _screen_to_board(screen_pos)
 	_current_hover = sq
 	# 悬浮棋子跟随（抬高）
-	var piece: XiangqiPiece3D = _pieces.get(_drag_from, null)
+	var piece = _pieces.get(_drag_from, null)
 	if piece != null and is_instance_valid(piece) and sq.x != -1:
 		var w: Vector3 = logical_to_world(sq)
 		piece.position = Vector3(w.x, PIECE_Y + 0.55, w.z)
@@ -858,7 +858,7 @@ func _do_bounce_back() -> void:
 		_is_dragging = false
 		_pending_drag = false
 		return
-	var piece: XiangqiPiece3D = _pieces.get(_drag_from, null)
+	var piece = _pieces.get(_drag_from, null)
 	var home: Vector3 = logical_to_world(_drag_from)
 	home.y = PIECE_Y
 	_is_dragging = false

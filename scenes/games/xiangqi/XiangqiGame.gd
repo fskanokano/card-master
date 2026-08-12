@@ -1,16 +1,21 @@
-extends GameBase
+extends "res://scenes/common/GameBase.gd"
+const XiangqiLogicRef = preload("res://scenes/games/xiangqi/XiangqiLogic.gd")
+const XiangqiAIRef = preload("res://scenes/games/xiangqi/XiangqiAI.gd")
+const XiangqiBoard3DRef = preload("res://scenes/games/xiangqi/XiangqiBoard3D.gd")
+const ApplePaletteRef = preload("res://theme/ApplePalette.gd")
+const AppleStyleRef = preload("res://theme/AppleStyle.gd")
 ## Xiangqi — 真·手游级对局：超大棋盘吃满屏 + 全量音效 + 飞行无瞬移
 
 var _board: Array = []
-var _side_to_move: int = XiangqiLogic.RED
+var _side_to_move: int = XiangqiLogicRef.RED
 var _selected: Vector2i = Vector2i(-1, -1)
-var _ai_side: int = XiangqiLogic.BLACK
+var _ai_side: int = XiangqiLogicRef.BLACK
 var _game_over: bool = false
 var _ai_thinking: bool = false
-var _my_side: int = XiangqiLogic.RED
+var _my_side: int = XiangqiLogicRef.RED
 var _is_animating: bool = false
 
-@onready var _board_view: XiangqiBoard3D = %XiangqiBoard
+@onready var _board_view = %XiangqiBoard
 var _board_view_compat: Control = null
 @onready var _status_card: Panel = %StatusCard
 @onready var _status_label: Label = %StatusLabel
@@ -112,7 +117,7 @@ func _apply_enterprise_chrome() -> void:
 	var tsb := StyleBoxFlat.new()
 	tsb.bg_color = Color("#141A14", 0.98)
 	tsb.corner_radius_top_left = 0; tsb.corner_radius_top_right = 0; tsb.corner_radius_bottom_right = 0; tsb.corner_radius_bottom_left = 0
-	tsb.border_color = ApplePalette.SEPARATOR; tsb.border_width_bottom = 1
+	tsb.border_color = ApplePaletteRef.SEPARATOR; tsb.border_width_bottom = 1
 	tsb.content_margin_left = 14; tsb.content_margin_top = 10; tsb.content_margin_right = 14; tsb.content_margin_bottom = 10
 	top.add_theme_stylebox_override("panel", tsb)
 	# 标题更大
@@ -125,30 +130,30 @@ func _apply_enterprise_chrome() -> void:
 	var sc_sb := StyleBoxFlat.new()
 	sc_sb.bg_color = Color("#1A1F18")
 	sc_sb.corner_radius_top_left = 14; sc_sb.corner_radius_top_right = 14; sc_sb.corner_radius_bottom_right = 14; sc_sb.corner_radius_bottom_left = 14
-	sc_sb.border_color = ApplePalette.HAIRLINE_GOLD; sc_sb.border_width_left = 1; sc_sb.border_width_top = 1; sc_sb.border_width_right = 1; sc_sb.border_width_bottom = 1
+	sc_sb.border_color = ApplePaletteRef.HAIRLINE_GOLD; sc_sb.border_width_left = 1; sc_sb.border_width_top = 1; sc_sb.border_width_right = 1; sc_sb.border_width_bottom = 1
 	sc_sb.content_margin_left = 14; sc_sb.content_margin_top = 7; sc_sb.content_margin_right = 14; sc_sb.content_margin_bottom = 7
 	_status_card.add_theme_stylebox_override("panel", sc_sb)
 	var bot: Panel = get_node("BottomBar")
 	var bsb := StyleBoxFlat.new()
 	bsb.bg_color = Color("#141A14", 0.98)
-	bsb.border_color = ApplePalette.SEPARATOR; bsb.border_width_top = 1
+	bsb.border_color = ApplePaletteRef.SEPARATOR; bsb.border_width_top = 1
 	bsb.content_margin_left = 14; bsb.content_margin_top = 12; bsb.content_margin_right = 14; bsb.content_margin_bottom = 12
 	bot.add_theme_stylebox_override("panel", bsb)
 	var badge: Panel = get_node("BottomBar/BottomInner/BottomBadge")
 	var badge_sb := StyleBoxFlat.new()
 	badge_sb.bg_color = Color("#1A1F18")
 	badge_sb.corner_radius_top_left = 20; badge_sb.corner_radius_top_right = 20; badge_sb.corner_radius_bottom_right = 20; badge_sb.corner_radius_bottom_left = 20
-	badge_sb.border_color = ApplePalette.SEPARATOR; badge_sb.border_width_left = 1; badge_sb.border_width_top = 1; badge_sb.border_width_right = 1; badge_sb.border_width_bottom = 1
+	badge_sb.border_color = ApplePaletteRef.SEPARATOR; badge_sb.border_width_left = 1; badge_sb.border_width_top = 1; badge_sb.border_width_right = 1; badge_sb.border_width_bottom = 1
 	badge_sb.content_margin_left = 10; badge_sb.content_margin_top = 5; badge_sb.content_margin_right = 10; badge_sb.content_margin_bottom = 5
 	badge.add_theme_stylebox_override("panel", badge_sb)
 	# 手游大按钮：44pt 高度、更大字
-	AppleStyle.apply_secondary_button(_btn_lobby)
+	AppleStyleRef.apply_secondary_button(_btn_lobby)
 	_btn_lobby.custom_minimum_size = Vector2(112, 44)
 	_btn_lobby.add_theme_font_size_override("font_size", 14)
-	AppleStyle.apply_primary_button(_btn_new)
+	AppleStyleRef.apply_primary_button(_btn_new)
 	_btn_new.custom_minimum_size = Vector2(92, 44)
 	_btn_new.add_theme_font_size_override("font_size", 15)
-	AppleStyle.apply_secondary_button(_btn_undo)
+	AppleStyleRef.apply_secondary_button(_btn_undo)
 	_btn_undo.custom_minimum_size = Vector2(92, 44)
 	_btn_undo.add_theme_font_size_override("font_size", 14)
 	_status_label.add_theme_font_size_override("font_size", 14)
@@ -157,14 +162,14 @@ func _apply_enterprise_chrome() -> void:
 func _resolve_sides() -> void:
 	match AppState.current_mode:
 		AppState.Mode.AI:
-			_my_side = XiangqiLogic.RED
-			_ai_side = XiangqiLogic.BLACK
+			_my_side = XiangqiLogicRef.RED
+			_ai_side = XiangqiLogicRef.BLACK
 		AppState.Mode.LAN_HOST:
-			_my_side = XiangqiLogic.RED
+			_my_side = XiangqiLogicRef.RED
 		AppState.Mode.LAN_CLIENT:
-			_my_side = XiangqiLogic.BLACK
+			_my_side = XiangqiLogicRef.BLACK
 		_:
-			_my_side = XiangqiLogic.RED
+			_my_side = XiangqiLogicRef.RED
 
 func _wire_board() -> void:
 	_board_view.try_move.connect(_on_try_move)
@@ -189,8 +194,8 @@ func setup(_config: Dictionary) -> void:
 	pass
 
 func new_game() -> void:
-	_board = XiangqiLogic.initial_board()
-	_side_to_move = XiangqiLogic.RED
+	_board = XiangqiLogicRef.initial_board()
+	_side_to_move = XiangqiLogicRef.RED
 	_selected = Vector2i(-1, -1)
 	_game_over = false
 	_ai_thinking = false
@@ -219,10 +224,10 @@ func _legal_for_selected() -> Array[Vector2i]:
 	if _selected.x == -1:
 		return []
 	var p: int = _board[_selected.y][_selected.x]
-	if p == 0 or XiangqiLogic.piece_side(p) != _side_to_move:
+	if p == 0 or XiangqiLogicRef.piece_side(p) != _side_to_move:
 		return []
 	var out: Array[Vector2i] = []
-	for m in (XiangqiLogic.all_legal_moves(_board, _side_to_move) as Array):
+	for m in (XiangqiLogicRef.all_legal_moves(_board, _side_to_move) as Array):
 		if m["from"] == _selected:
 			out.append(m["to"])
 	return out
@@ -235,7 +240,7 @@ func _on_square_selected(pos: Vector2i) -> void:
 		_sync_board()
 		return
 	var p: int = _board[pos.y][pos.x]
-	if p != 0 and XiangqiLogic.piece_side(p) == _side_to_move:
+	if p != 0 and XiangqiLogicRef.piece_side(p) == _side_to_move:
 		_selected = pos
 		# 选中音效已由 Board 发起，这里不再重复
 	else:
@@ -248,7 +253,7 @@ func _on_try_move(from: Vector2i, to: Vector2i) -> void:
 	_do_move(from, to, true)
 
 func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
-	if not XiangqiLogic.is_legal(_board, from.x, from.y, to.x, to.y, _side_to_move):
+	if not XiangqiLogicRef.is_legal(_board, from.x, from.y, to.x, to.y, _side_to_move):
 		var am_err: Node = get_node_or_null("/root/AudioManager")
 		if am_err != null and am_err.has_method("play_invalid"):
 			am_err.call("play_invalid")
@@ -256,7 +261,7 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 	var mover_piece: int = _board[from.y][from.x]
 	var captured: int = _board[to.y][to.x]
 	_history.append({
-		"board": XiangqiLogic.clone_board(_board),
+		"board": XiangqiLogicRef.clone_board(_board),
 		"side": _side_to_move,
 		"last_from": _board_view.last_move_from,
 		"last_to": _board_view.last_move_to,
@@ -274,14 +279,14 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 	await get_tree().create_timer(dur).timeout
 	if not is_inside_tree():
 		return
-	_board = XiangqiLogic.apply_on_clone(_board, from.x, from.y, to.x, to.y)
+	_board = XiangqiLogicRef.apply_on_clone(_board, from.x, from.y, to.x, to.y)
 	_board_view.set_last_move(from, to)
 	var mover: int = _side_to_move
-	_side_to_move = XiangqiLogic.BLACK if _side_to_move == XiangqiLogic.RED else XiangqiLogic.RED
+	_side_to_move = XiangqiLogicRef.BLACK if _side_to_move == XiangqiLogicRef.RED else XiangqiLogicRef.RED
 	_selected = Vector2i(-1, -1)
 	_is_animating = false
 	move_made.emit(from, to)
-	var was_check: bool = XiangqiLogic.is_in_check(_board, _side_to_move)
+	var was_check: bool = XiangqiLogicRef.is_in_check(_board, _side_to_move)
 	var is_capture: bool = captured != 0
 	_check_game_over(mover)
 	# 音效：将军>吃子>普通
@@ -314,15 +319,15 @@ func _do_move(from: Vector2i, to: Vector2i, broadcast: bool) -> void:
 		_trigger_ai()
 
 func _check_game_over(mover: int) -> void:
-	if XiangqiLogic.is_checkmate(_board, _side_to_move):
+	if XiangqiLogicRef.is_checkmate(_board, _side_to_move):
 		_game_over = true
-		_sub_label.text = "%s 将杀获胜" % ("红方" if mover == XiangqiLogic.RED else "黑方")
+		_sub_label.text = "%s 将杀获胜" % ("红方" if mover == XiangqiLogicRef.RED else "黑方")
 		game_over.emit({"winner": mover, "reason": "checkmate"})
 		return
-	if XiangqiLogic.is_stalemate_no_moves(_board, _side_to_move):
-		if XiangqiLogic.is_in_check(_board, _side_to_move):
+	if XiangqiLogicRef.is_stalemate_no_moves(_board, _side_to_move):
+		if XiangqiLogicRef.is_in_check(_board, _side_to_move):
 			_game_over = true
-			_sub_label.text = "%s 获胜" % ("红方" if mover == XiangqiLogic.RED else "黑方")
+			_sub_label.text = "%s 获胜" % ("红方" if mover == XiangqiLogicRef.RED else "黑方")
 			game_over.emit({"winner": mover, "reason": "checkmate"})
 		else:
 			_game_over = true
@@ -352,7 +357,7 @@ func _trigger_ai() -> void:
 		_sync_board()
 		_refresh_ui()
 		return
-	var mv: Dictionary = XiangqiAI.best_move(_board, _side_to_move, 2)
+	var mv: Dictionary = XiangqiAIRef.best_move(_board, _side_to_move, 2)
 	_ai_thinking = false
 	if mv.is_empty() or _game_over:
 		_sync_board()
@@ -394,14 +399,14 @@ func _on_undo() -> void:
 func _refresh_ui() -> void:
 	if _game_over:
 		_status_label.text = "对局结束"
-		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
+		_status_label.add_theme_color_override("font_color", ApplePaletteRef.RED)
 		var sc: StyleBoxFlat = _status_card.get_theme_stylebox("panel") as StyleBoxFlat
 		if sc != null:
-			sc.border_color = ApplePalette.RED
+			sc.border_color = ApplePaletteRef.RED
 			sc.bg_color = Color("#221610")
 		_board_view.interactable = false
 		return
-	var side_name: String = "红方" if _side_to_move == XiangqiLogic.RED else "黑方"
+	var side_name: String = "红方" if _side_to_move == XiangqiLogicRef.RED else "黑方"
 	var my_turn: bool = _is_my_turn()
 	if _is_animating:
 		_status_label.text = "落子中…"
@@ -427,16 +432,16 @@ func _refresh_ui() -> void:
 	else:
 		_status_label.text = "%s 行棋" % side_name
 		_sub_label.text = "长按拖动棋子到高亮落点  ·  非法位置会弹回"
-	_status_label.add_theme_color_override("font_color", ApplePalette.LABEL)
+	_status_label.add_theme_color_override("font_color", ApplePaletteRef.LABEL)
 	var sc2: StyleBoxFlat = _status_card.get_theme_stylebox("panel") as StyleBoxFlat
 	if sc2 != null:
-		sc2.border_color = ApplePalette.HAIRLINE_GOLD
+		sc2.border_color = ApplePaletteRef.HAIRLINE_GOLD
 		sc2.bg_color = Color("#1A1F18")
-	if XiangqiLogic.is_in_check(_board, _side_to_move):
+	if XiangqiLogicRef.is_in_check(_board, _side_to_move):
 		_status_label.text += "  ·  将军！"
-		_status_label.add_theme_color_override("font_color", ApplePalette.RED)
+		_status_label.add_theme_color_override("font_color", ApplePaletteRef.RED)
 		if sc2 != null:
-			sc2.border_color = ApplePalette.RED
+			sc2.border_color = ApplePaletteRef.RED
 			sc2.bg_color = Color("#221610")
 	_board_view.interactable = not _game_over and not _ai_thinking and not _is_animating and my_turn
 
@@ -444,7 +449,7 @@ func _refresh_ui() -> void:
 func _rpc_remote_move(from: Vector2i, to: Vector2i) -> void:
 	if multiplayer.get_remote_sender_id() == 0:
 		return
-	var sender_side: int = XiangqiLogic.BLACK if _my_side == XiangqiLogic.RED else XiangqiLogic.RED
+	var sender_side: int = XiangqiLogicRef.BLACK if _my_side == XiangqiLogicRef.RED else XiangqiLogicRef.RED
 	if _side_to_move != sender_side:
 		return
 	_do_move(from, to, false)
