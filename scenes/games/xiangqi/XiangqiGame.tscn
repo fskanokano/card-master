@@ -138,14 +138,14 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 stretch = true
-mouse_filter = 2
+mouse_filter = 0
 
 [node name="SubViewport" type="SubViewport" parent="BoardWrap/ViewportContainer"]
 size = Vector2i(720, 1148)
 transparent_bg = true
-handle_input_locally = false
+handle_input_locally = true
 own_world_3d = true
-gui_disable_input = true
+gui_disable_input = false
 
 [node name="XiangqiBoard" type="Node3D" parent="BoardWrap/ViewportContainer/SubViewport" unique_id="board3d"]
 unique_name_in_owner = true

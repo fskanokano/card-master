@@ -461,10 +461,32 @@ func _update_layout() -> void:
 		vp = get_viewport().get_visible_rect().size
 	update_layout(vp)
 
-func update_layout(_stage_size: Vector2) -> void:
-	# 3D 棋盘不跟 Control 尺寸走，相机已固定俯视，保持居中即可
-	# Portrait: no extra scale, camera fov handles it
-	pass
+func update_layout(stage_size: Vector2) -> void:
+	# 动态适配：根据视口宽高比调整相机距离/FOV，保证棋盘完整可见不溢出
+	var size: Vector2 = stage_size
+	if size.x <= 0 or size.y <= 0:
+		size = Vector2(720, 1148)
+	if _camera == null:
+		return
+	# 棋盘世界尺寸约 9.2 x 10.2 (含边距)
+	var board_w: float = 9.2
+	var board_h: float = 10.2
+	var aspect: float = size.x / max(size.y, 1.0)
+	# 竖屏 aspect < 1：需要更高相机视角；横屏 aspect > 1：更宽
+	var target_fov: float = 42.0
+	if aspect < 0.85:
+		target_fov = 46.0
+	elif aspect > 1.2:
+		target_fov = 38.0
+	_camera.fov = target_fov
+		# 相机高度随 aspect 微调
+	var cam_h: float = 14.0
+	var cam_d: float = 11.5
+	if aspect < 0.7:
+		cam_h = 15.5
+		cam_d = 12.5
+	_camera.position = Vector3(0, cam_h, cam_d)
+	_camera.rotation_degrees = Vector3(-52, 0, 0)
 
 func get_board_pixel_size() -> Vector2:
 	return Vector2(BOARD_W * 80, BOARD_H * 80)

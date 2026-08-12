@@ -67,6 +67,15 @@ func _fit_board_to_stage() -> void:
 	var stage: Control = get_node_or_null("BoardWrap") as Control
 	if stage == null or _board_view == null:
 		return
+	# 同步 SubViewport 尺寸并让相机适配（3D 棋盘位于 SubViewport 内）
+	var container: SubViewportContainer = get_node_or_null("BoardWrap/ViewportContainer") as SubViewportContainer
+	var sub_vp: SubViewport = get_node_or_null("BoardWrap/ViewportContainer/SubViewport") as SubViewport
+	if container != null and sub_vp != null and stage.size.x > 0 and stage.size.y > 0:
+		container.position = Vector2.ZERO
+		container.size = stage.size
+		sub_vp.size = Vector2i(int(stage.size.x), int(stage.size.y))
+		_board_view.update_layout(stage.size)
+		return
 	if _board_view is Control:
 		if stage.size.x <= 0 or stage.size.y <= 0:
 			return
