@@ -130,7 +130,24 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="XiangqiBoard" type="Node3D" parent="." unique_id="board3d"]
+[node name="ViewportContainer" type="SubViewportContainer" parent="BoardWrap"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
+mouse_filter = 2
+
+[node name="SubViewport" type="SubViewport" parent="BoardWrap/ViewportContainer"]
+size = Vector2i(720, 1148)
+transparent_bg = true
+handle_input_locally = false
+own_world_3d = true
+gui_disable_input = true
+
+[node name="XiangqiBoard" type="Node3D" parent="BoardWrap/ViewportContainer/SubViewport" unique_id="board3d"]
 unique_name_in_owner = true
 script = ExtResource("1_board")
 
