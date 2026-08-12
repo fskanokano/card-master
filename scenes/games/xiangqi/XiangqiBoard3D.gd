@@ -462,31 +462,49 @@ func _update_layout() -> void:
 	update_layout(vp)
 
 func update_layout(stage_size: Vector2) -> void:
-	# 动态适配：根据视口宽高比调整相机距离/FOV，保证棋盘完整可见不溢出
+	# 动态适配：按视口宽高比精确求解相机距离缩放 k 与 FOV，
+	# 保证棋盘(含 slab 边距)完整落入屏幕，竖屏/横屏均不溢出。
 	var size: Vector2 = stage_size
 	if size.x <= 0 or size.y <= 0:
 		size = Vector2(720, 1148)
 	if _camera == null:
 		return
-	# 棋盘世界尺寸约 9.2 x 10.2 (含边距)
-	var board_w: float = 9.2
-	var board_h: float = 10.2
 	var aspect: float = size.x / max(size.y, 1.0)
-	# 竖屏 aspect < 1：需要更高相机视角；横屏 aspect > 1：更宽
-	var target_fov: float = 42.0
-	if aspect < 0.85:
-		target_fov = 46.0
-	elif aspect > 1.2:
-		target_fov = 38.0
-	_camera.fov = target_fov
-		# 相机高度随 aspect 微调
-	var cam_h: float = 14.0
-	var cam_d: float = 11.5
-	if aspect < 0.7:
-		cam_h = 15.5
-		cam_d = 12.5
-	_camera.position = Vector3(0, cam_h, cam_d)
-	_camera.rotation_degrees = Vector3(-52, 0, 0)
+	# 棋盘可见半宽/半深(含边距)：slab 9.2 x 10.2 → x ±4.6, z ±5.1
+	const HALF_W: float = 4.6
+	const HALF_D: float = 5.1
+	# 相机俯角 52°，向下看向棋盘中心 (0,0,0)
+	const PITCH_DEG: float = 52.0
+	var pitch: float = deg_to_rad(PITCH_DEG)
+	var sp: float = sin(pitch)
+	var cp: float = cos(pitch)
+	# 基准位姿(scale=1 与旧版一致)，目标 FOV 45°、填充比 88%
+	const BASE_Y: float = 14.0
+	const BASE_Z: float = 11.5
+	var fill: float = 0.88
+	var tan_half: float = tan(deg_to_rad(45.0 * 0.5))
+	# 相机在 (0, k*BASE_Y, k*BASE_Z)，lookAt 原点时：
+	#   depth_near = k*A - B, 其中 A = BASE_Y*sp + BASE_Z*cp, B = HALF_D*cp
+	# 水平约束 depth_near >= HALF_W / (fill * tan(vfov/2) * aspect)
+	var A: float = BASE_Y * sp + BASE_Z * cp
+	var B: float = HALF_D * cp
+	var k: float = (HALF_W / (fill * tan_half * max(aspect, 0.12)) + B) / A
+	k = clamp(k, 0.8, 3.0)
+	var cy: float = BASE_Y * k
+	var cz: float = BASE_Z * k
+	var depth_near: float = cy * sp - (HALF_D - cz) * cp
+	var depth_far: float = cy * sp - (-HALF_D - cz) * cp
+	# 由实际位姿反推所需 FOV：垂直/水平取大者，再加 8% 安全边距
+	var ny_top: float = abs((-cy * cp - (-HALF_D - cz) * sp) / depth_far)
+	var ny_bot: float = abs((-cy * cp - (HALF_D - cz) * sp) / depth_near)
+	var max_ny: float = max(ny_top, ny_bot)
+	var max_nx: float = HALF_W / depth_near
+	var v_vert: float = 2.0 * atan(max_ny / fill)
+	var v_horiz: float = 2.0 * atan(max_nx / (fill * max(aspect, 0.12)))
+	var fov_deg: float = rad_to_deg(max(v_vert, v_horiz)) * 1.08
+	_camera.fov = clamp(fov_deg, 28.0, 72.0)
+	_camera.position = Vector3(0, cy, cz)
+	_camera.rotation_degrees = Vector3(-PITCH_DEG, 0, 0)
 
 func get_board_pixel_size() -> Vector2:
 	return Vector2(BOARD_W * 80, BOARD_H * 80)
